@@ -125,6 +125,8 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   const ceiling = new THREE.MeshStandardMaterial({ color: "#1c1e1d", roughness: 0.9 });
   const steel = new THREE.MeshStandardMaterial({ color: "#5a5f5d", metalness: 0.6, roughness: 0.4 });
   const paint = new THREE.MeshStandardMaterial({ color: "#d9d7cf", roughness: 0.5 });
+  // things painted or lying on the floor: lifted a hair and pulled forward in depth so they don't shimmer against it
+  const decal = m => Object.assign(m, { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
 
   // ---- the platform
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(44, 4.2), tiles);
@@ -132,15 +134,15 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   floor.position.set(0, 0, -2.1);
   floor.receiveShadow = true;
   scene.add(floor);
-  const tactile = new THREE.Mesh(new THREE.PlaneGeometry(44, 0.32), strip);
+  const tactile = new THREE.Mesh(new THREE.PlaneGeometry(44, 0.32), decal(strip));
   tactile.rotation.x = -Math.PI / 2;
-  tactile.position.set(0, 0.002, -0.72);
+  tactile.position.set(0, 0.004, -0.72);
   scene.add(tactile);
-  const line = new THREE.Mesh(new THREE.PlaneGeometry(44, 0.08), paint);
+  const line = new THREE.Mesh(new THREE.PlaneGeometry(44, 0.08), decal(paint.clone()));
   line.rotation.x = -Math.PI / 2;
-  line.position.set(0, 0.002, -0.18);
+  line.position.set(0, 0.004, -0.24);
   scene.add(line);
-  scene.add(box(44, 0.06, 0.2, paint, 0, -0.03, -0.05, { cast: false })); // edge coping
+  scene.add(box(44, 0.066, 0.2, paint, 0, -0.027, -0.05, { cast: false })); // edge coping, 6 mm proud of the tiles
   scene.add(box(44, 1.1, 0.3, wall, 0, -0.6, 0.0, { cast: false }));       // the platform's face
 
   // ---- the track bed, rails and sleepers
@@ -192,9 +194,9 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
     scene.add(t);
     tubes.push(t);
     // its smear of light on the wet tiles
-    const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 3.2), new THREE.MeshBasicMaterial({ map: glowTex, color: "#cfe0d6", transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false }));
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 3.2), new THREE.MeshBasicMaterial({ map: glowTex, color: "#cfe0d6", transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8 }));
     glow.rotation.set(-Math.PI / 2, 0, Math.PI / 2 + 0.12);
-    glow.position.set(x - 0.3, 0.004, -1.3);
+    glow.position.set(x - 0.3, 0.008, -1.3);
     scene.add(glow);
   }
   const lamps = [-8.25, -3.75, 0.75, 5.25].map(x => {
@@ -228,9 +230,9 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   const vmLight = new THREE.PointLight("#fff0d4", 5, 5, 1.6);
   vmLight.position.set(4.6, 1.2, -2.95);
   scene.add(vmLight);
-  const vmGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 2.6), new THREE.MeshBasicMaterial({ map: glowTex, color: "#ffe6bd", transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false }));
+  const vmGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 2.6), new THREE.MeshBasicMaterial({ map: glowTex, color: "#ffe6bd", transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8 }));
   vmGlow.rotation.set(-Math.PI / 2, 0, 0);
-  vmGlow.position.set(4.6, 0.005, -2.4);
+  vmGlow.position.set(4.6, 0.008, -2.4);
   scene.add(vmGlow);
 
   // ---- the bench, and what's been left on it

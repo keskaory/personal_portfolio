@@ -13,7 +13,7 @@ function tex(c, { repeat = null, srgb = true } = {}) {
   const t = new THREE.CanvasTexture(c);
   if (srgb) t.colorSpace = THREE.SRGBColorSpace;
   if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...repeat); }
-  t.anisotropy = 8;
+  t.anisotropy = 16; // three.js clamps this to what the GPU supports; it keeps fine floor patterns from shimmering at a low angle
   return t;
 }
 function speckle(ctx, w, h, rand, n, a) {
@@ -55,13 +55,13 @@ export function tactileStrip() {
   for (let x = 8; x < 256; x += 16) for (let y = 8; y < 64; y += 16) {
     ctx.fillStyle = "#b39d48";
     ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.fillStyle = "rgba(0,0,0,0.12)";
     ctx.beginPath(); ctx.arc(x + 1.5, y + 1.5, 4.5, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = "#bba44e";
     ctx.beginPath(); ctx.arc(x - 0.5, y - 0.5, 3.8, 0, Math.PI * 2); ctx.fill();
   }
   const rand = seeded(303);
-  speckle(ctx, 256, 64, rand, 1500, 0.12);
+  speckle(ctx, 256, 64, rand, 1500, 0.06);
   return tex(c, { repeat: [40, 1] });
 }
 

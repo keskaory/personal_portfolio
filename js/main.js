@@ -65,7 +65,7 @@ async function main() {
   const quality = pickQuality();
   const canvas = $("#scene-canvas");
   const renderer = createRenderer(canvas, quality);
-  const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.01, 20);
+  const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.03, 20);
   const environment = createEnvironment(renderer);
 
   // ---- scenes, built on first use
@@ -157,7 +157,6 @@ async function main() {
   function showStop() {
     const stop = stops[current];
     chapters.set(current);
-    $("#timecode").textContent = stop.time || "";
     document.body.dataset.stop = stop.id;
     document.body.dataset.title = stop.titleCard ? "1" : "";
     document.body.dataset.scene = stop.scene;

@@ -24,7 +24,6 @@
       "shot": "rest",
       "chapter": "Who I Am",
       "label": "The station",
-      "time": "11:40 pm",
       "titleCard": true
     },
     {
@@ -32,8 +31,7 @@
       "scene": "restaurant",
       "shot": "rest",
       "chapter": "What I've Done",
-      "label": "The restaurant",
-      "time": "12:30 am"
+      "label": "The restaurant"
     },
     {
       "id": "projects",
@@ -41,7 +39,6 @@
       "shot": "rest",
       "chapter": "What I've Done",
       "label": "Projects",
-      "time": "12:30 am",
       "read": "projects"
     },
     {
@@ -50,7 +47,6 @@
       "shot": "rest",
       "chapter": "What I've Done",
       "label": "Experience",
-      "time": "12:30 am",
       "read": "experience"
     },
     {
@@ -58,8 +54,7 @@
       "scene": "apartment",
       "shot": "rest",
       "chapter": "Beyond the Work",
-      "label": "Home",
-      "time": "2:10 am"
+      "label": "Home"
     }
   ],
   "magazine": {

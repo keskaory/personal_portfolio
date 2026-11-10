@@ -41,12 +41,6 @@ body:not([data-title="1"]) .title-card,
 .chapters > ol > li > a[aria-current] { color: var(--paper); }
 .examining .chapters { opacity: 0; pointer-events: none; }
 
-/* time of night, set small like a script note */
-.timecode {
-  position: fixed; left: clamp(16px, 4vw, 44px); bottom: 26px; z-index: 10; margin: 0;
-  font-style: italic; font-size: 17px; color: var(--paper-dim);
-}
-
 /* the way on */
 .next {
   position: fixed; right: clamp(16px, 3vw, 40px); bottom: 24px; z-index: 11;
@@ -124,7 +118,7 @@ body:not([data-title="1"]) .title-card,
 .fallback { position: relative; z-index: 5; padding: 140px clamp(16px, 6vw, 80px); max-width: 68ch; }
 .fallback h2 { font-weight: 400; font-size: 40px; margin: 0 0 12px; }
 .scene-page:has(.fallback:not([hidden])) { overflow: auto; height: auto; }
-.scene-page:has(.fallback:not([hidden])) :is(.title-card, .chapters, .next, .timecode) { display: none; }
+.scene-page:has(.fallback:not([hidden])) :is(.title-card, .chapters, .next) { display: none; }
 .noscript { position: relative; z-index: 95; padding: 140px 24px; max-width: 60ch; }
 
 /* ---- phones and tall windows */
@@ -145,7 +139,6 @@ body:not([data-title="1"]) .title-card,
   .examine-name { font-size: 28px; }
   .examine-short { font-size: 17px; margin-bottom: 12px; }
   .examine-facts dt { font-size: 24px; }
-  .examining .timecode { opacity: 0; }
   .caption { bottom: 64px; }
   body[data-title="1"] .caption { bottom: auto; top: 112px; }
 }
@@ -179,7 +172,7 @@ body:not([data-title="1"]) .title-card,
 }
 .reader-nav button:hover:not(:disabled) { border-color: var(--amber); }
 .reader-nav button:disabled { opacity: 0.35; cursor: default; }
-.reading .caption, .reading .title-card, .reading .timecode { opacity: 0; }
+.reading .caption, .reading .title-card { opacity: 0; }
 @media (max-width: 720px), (max-aspect-ratio: 85/100) {
   .reader { grid-template-columns: 1fr; bottom: 12px; padding: 12px 14px; gap: 8px; }
   .reader-title { font-size: 19px; white-space: normal; }

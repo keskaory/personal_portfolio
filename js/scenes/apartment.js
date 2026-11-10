@@ -141,7 +141,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   street.position.set(-1.2, 2.6, -3.2);
   street.target.position.set(-0.3, 0.4, -0.4);
   street.castShadow = true;
-  street.shadow.mapSize.set(2048, 2048);
+  street.shadow.mapSize.set(1024, 1024);
   street.shadow.bias = -0.0003;
   scene.add(street, street.target);
   const lampGroup = new THREE.Group();
@@ -156,7 +156,8 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   const lamp = new THREE.PointLight("#ffbf80", 5.5, 6, 1.5);
   lamp.position.set(0.05, 1.38, -1.2);
   lamp.castShadow = true;
-  lamp.shadow.mapSize.set(1024, 1024);
+  lamp.shadow.mapSize.set(512, 512);
+  lamp.shadow.radius = 4;
   lamp.shadow.bias = -0.002;
   scene.add(lamp);
   scene.add(new THREE.HemisphereLight("#34362f", "#100d0a", 1.15));

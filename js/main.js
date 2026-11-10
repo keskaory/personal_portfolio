@@ -203,7 +203,8 @@ async function main() {
     return { ...shot, position: shot.position.clone().addScaledVector(dir, d) };
   };
 
-  function goTo(i, { instant = false, then = null } = {}) {
+  let queued = null;
+  function goTo(i, { instant = false, then = null, queue = true } = {}) {
     i = (i + stops.length) % stops.length;
     const read = stops[i].read;
     // already reading in the same room: just turn to the section
@@ -216,6 +217,8 @@ async function main() {
       return;
     }
     if (mode === "examine") putBack({ focus: false });
+    // a request made mid-move is kept and taken once the camera arrives
+    if (mode === "moving" && !instant) { if (queue) queued = { i, then }; return; }
     if (mode !== "rest" && !instant) return;
     const from = stops[current];
     const to = stops[i];
@@ -235,7 +238,12 @@ async function main() {
     }
     mode = "moving";
     document.body.classList.add("moving");
-    const arrived = () => { mode = "rest"; document.body.classList.remove("moving"); then?.(); };
+    const arrived = () => {
+      mode = "rest";
+      document.body.classList.remove("moving");
+      then?.();
+      if (queued) { const q = queued; queued = null; goTo(q.i, { then: q.then }); }
+    };
     if (from.scene === to.scene) {
       showStop();
       rig.go(shotFor(active.api, to), 1.9, arrived);
@@ -334,7 +342,7 @@ async function main() {
     if (now < wheelLock) return;
     wheelAcc += e.deltaY;
     if (Math.abs(wheelAcc) > 60) {
-      goTo(current + Math.sign(wheelAcc));
+      goTo(current + Math.sign(wheelAcc), { queue: false });
       wheelAcc = 0;
       wheelLock = now + 1300;
     }
@@ -344,7 +352,7 @@ async function main() {
   canvas.addEventListener("touchend", e => {
     if (touchY === null || mode !== "rest") return;
     const dy = touchY - e.changedTouches[0].clientY;
-    if (Math.abs(dy) > 60) goTo(current + Math.sign(dy));
+    if (Math.abs(dy) > 60) goTo(current + Math.sign(dy), { queue: false });
     touchY = null;
   }, { passive: true });
   window.addEventListener("keydown", e => {

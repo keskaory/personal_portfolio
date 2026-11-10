@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kaory Gatmaitan</title>
+  <meta name="description" content="Kaory Gatmaitan, data science at UC Berkeley.">
+  <meta name="theme-color" content="#070b09">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Noto+Serif+TC:wght@900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a href="#top" class="name">Kaory Gatmaitan</a>
+    <nav>
+      <a href="#about">About</a>
+      <a href="#work">Work</a>
+      <a href="#contact">Contact</a>
+      <button id="grade" class="grade" title="Change the colors">Neon night</button>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <canvas id="dots" aria-hidden="true"></canvas>
+      <h1 class="sr-only">Kaory Gatmaitan</h1>
+      <div class="sign neon flicker" aria-hidden="true">作品集</div>
+      <div class="hero-text">
+        <p class="subtitle">Placeholder: one line about what you like to figure out.</p>
+        <p class="school">Data Science, UC Berkeley</p>
+      </div>
+      <span class="datestamp" id="datestamp" aria-hidden="true"></span>
+    </section>
+
+    <section id="about" class="about">
+      <h2><span class="zh neon">關於</span> About</h2>
+      <div class="about-grid">
+        <p class="about-big reveal">
+          Placeholder: a short intro in your own voice. Who you are, what you're curious about,
+          and the kind of problems you want to work on.
+        </p>
+        <dl class="facts reveal">
+          <dt>Studying</dt><dd>Data Science, Statistics minor</dd>
+          <dt>Graduating</dt><dd>December 2027</dd>
+          <dt>Based in</dt><dd>Placeholder</dd>
+          <dt>Outside class</dt><dd>Placeholder</dd>
+        </dl>
+      </div>
+    </section>
+
+    <section id="work" class="work">
+      <h2><span class="zh neon">作品</span> Work</h2>
+      <div class="desk" id="desk"></div>
+    </section>
+
+    <section id="contact" class="contact">
+      <h2><span class="zh neon">聯絡</span> Contact</h2>
+      <a class="big-link" href="mailto:you@example.com">Write to me</a>
+      <p class="links">
+        <a href="#">Resume</a>
+        <a href="#">LinkedIn</a>
+        <a href="#">GitHub</a>
+      </p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Kaory Gatmaitan, <span id="year"></span></span>
+    <a href="#top">Back to top</a>
+  </footer>
+
+  <div class="panel-backdrop" id="backdrop" hidden></div>
+  <aside class="panel" id="panel" aria-hidden="true" role="dialog" aria-labelledby="panel-title">
+    <button class="panel-close" id="panel-close" aria-label="Close">×</button>
+    <h3 id="panel-title"></h3>
+    <p class="panel-tags" id="panel-tags"></p>
+    <div class="panel-img">Image or chart</div>
+    <p id="panel-body"></p>
+    <a href="#" id="panel-link">Code on GitHub</a>
+  </aside>
+
+  <script src="script.js"></script>
+</body>
+</html>

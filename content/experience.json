@@ -1,0 +1,42 @@
+{
+  "_note": "Sample experiences for testing the layout. The organizations are fictional placeholders, not real employers. 'caseStudy' is optional: set it to null to show everything in the case file without a separate page.",
+  "experience": [
+    {
+      "id": "sample-consulting",
+      "sample": true,
+      "organization": "Example Consulting Group",
+      "role": "Sample role: Consultant",
+      "dates": "Feb 20XX – May 20XX",
+      "location": "Sample location",
+      "summary": "One sample sentence about the engagement and who it was for.",
+      "responsibilities": [
+        "Sample responsibility of normal length.",
+        "A second sample responsibility that is long enough to wrap onto a second line in narrow layouts."
+      ],
+      "contributions": [
+        "Sample contribution.",
+        "Sample contribution.",
+        "Sample contribution with a little more detail about what changed because of it."
+      ],
+      "caseStudy": {
+        "sections": [
+          { "heading": "The situation", "body": "Sample text. The problem the client or team was facing." },
+          { "heading": "My part", "body": "Sample text. What you were responsible for, and who you worked with." },
+          { "heading": "What came of it", "body": "Sample text. The outcome, stated only as far as you can stand behind it." }
+        ]
+      }
+    },
+    {
+      "id": "sample-research",
+      "sample": true,
+      "organization": "Example Research Lab, a Longer Sample Organization Name",
+      "role": "Sample role: Research Assistant",
+      "dates": "Jun 20XX – Aug 20XX",
+      "location": "",
+      "summary": "One sample sentence.",
+      "responsibilities": ["Sample responsibility."],
+      "contributions": ["Sample contribution."],
+      "caseStudy": null
+    }
+  ]
+}

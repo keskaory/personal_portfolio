@@ -1,0 +1,62 @@
+{
+  "_note": "Sample bottles. Everything here is placeholder text. 'size' is 15, 50 or 100 (ml) and sets the bottle's proportions. 'tint' is the liquid color.",
+  "fragrances": [
+    {
+      "id": "fragrance-01",
+      "name": "Fragrance one",
+      "label": [
+        "fragrance one",
+        "no. 00",
+        "[ city ]",
+        "[ date ]"
+      ],
+      "size": 100,
+      "tint": "#e9d9a6",
+      "fill": 0.78,
+      "short": "One line about this scent goes here.",
+      "notes": "Placeholder: what you smell first, and what stays.",
+      "memory": "Placeholder: a place, a person, or a season it brings back.",
+      "wear": "Placeholder: when you reach for it.",
+      "acquired": "Placeholder: when and where you got it.",
+      "sample": true
+    },
+    {
+      "id": "fragrance-02",
+      "name": "Fragrance two",
+      "label": [
+        "fragrance two",
+        "no. 00",
+        "[ city ]",
+        "[ date ]"
+      ],
+      "size": 50,
+      "tint": "#f1e8cf",
+      "fill": 0.55,
+      "short": "One line about this scent goes here.",
+      "notes": "Placeholder: what you smell first, and what stays.",
+      "memory": "Placeholder: a place, a person, or a season it brings back.",
+      "wear": "Placeholder: when you reach for it.",
+      "acquired": "Placeholder: when and where you got it.",
+      "sample": true
+    },
+    {
+      "id": "fragrance-03",
+      "name": "Fragrance three",
+      "label": [
+        "fragrance three",
+        "no. 00",
+        "[ city ]",
+        "[ date ]"
+      ],
+      "size": 15,
+      "tint": "#dcc58e",
+      "fill": 0.9,
+      "short": "One line about this scent goes here.",
+      "notes": "Placeholder: what you smell first, and what stays.",
+      "memory": "Placeholder: a place, a person, or a season it brings back.",
+      "wear": "Placeholder: when you reach for it.",
+      "acquired": "Placeholder: when and where you got it.",
+      "sample": true
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "_note": "Site-wide details and the order of the homepage. Everything marked sample is placeholder. 'stops' is the sequence you scroll through; each stop names a scene and a camera shot in that scene.",
+  "person": {
+    "name": "Kaory Gatmaitan",
+    "school": "Data Science, UC Berkeley",
+    "graduation": "Graduating December 2027",
+    "line": "Sample line: one sentence about the kind of work you want to do next.",
+    "bio": [
+      "Sample paragraph. A few sentences about where you come from and what got you into data, written in your own voice.",
+      "Sample paragraph. What you are looking for now, and the problems you would like to spend your time on."
+    ],
+    "photo": null
+  },
+  "links": {
+    "resume": "",
+    "github": "",
+    "linkedin": "",
+    "email": ""
+  },
+  "stops": [
+    { "id": "intro", "scene": "intro", "shot": "rest", "chapter": "Who I Am", "label": "Who I Am", "time": "11:50 pm" },
+    { "id": "projects", "scene": "archive", "shot": "projects", "chapter": "What I've Done", "label": "Projects", "time": "12:20 am" },
+    { "id": "experience", "scene": "archive", "shot": "experience", "chapter": "What I've Done", "label": "Experience", "time": "12:55 am" },
+    { "id": "ledge", "scene": "ledge", "shot": "rest", "chapter": "Beyond the Work", "label": "Fragrances", "time": "2:10 am" }
+  ]
+}

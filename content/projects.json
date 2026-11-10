@@ -1,0 +1,58 @@
+{
+  "_note": "Sample projects for testing the layout. None of this is real work. Replace each entry, or delete it; add more by copying one. 'preview.format' is chart, screenshot or diagram (only used while 'preview.image' is empty). Set 'image' to a path such as images/projects/your-project.png when you have one.",
+  "projects": [
+    {
+      "id": "sample-bike-demand",
+      "sample": true,
+      "title": "Bike-Share Demand",
+      "summary": "Forecasting hourly rentals at each station.",
+      "description": "A sample project description of medium length. It explains the question the project asked, the data it used, and why the answer mattered to someone.",
+      "stack": ["Python", "pandas", "scikit-learn"],
+      "preview": { "format": "chart", "image": null, "caption": "Sample figure: predicted against actual rentals" },
+      "results": [
+        { "value": "00%", "label": "Sample metric: error compared with a baseline" },
+        { "value": "0.00", "label": "Sample metric: a model score" }
+      ],
+      "github": "",
+      "caseStudy": {
+        "sections": [
+          { "heading": "The question", "body": "Sample text. What you set out to find, in one or two sentences." },
+          { "heading": "What I did", "body": "Sample text. The steps you took, the data you cleaned, the methods you chose and why." },
+          { "heading": "What I found", "body": "Sample text. The result, what it means, and what you would do next." }
+        ]
+      }
+    },
+    {
+      "id": "sample-inspection-explorer",
+      "sample": true,
+      "title": "Restaurant Inspection Results Explorer: Comparing Neighborhoods Over Time",
+      "summary": "A long sample title, to check that headings wrap cleanly on the slide, in the panel and on the page.",
+      "description": "A deliberately longer sample description. It runs to several sentences so the layout can be tested with real-looking length. A real entry would describe the people who would use the tool, the decisions it supports, how the data was gathered and joined, and the trade-offs made in the design. This paragraph exists only to make sure longer text still reads well everywhere it appears.",
+      "stack": ["SQL", "PostgreSQL", "Python", "Plotly", "Streamlit"],
+      "preview": { "format": "screenshot", "image": null, "caption": "Sample screenshot: the main dashboard view" },
+      "results": [
+        { "value": "0", "label": "Sample metric: something counted" }
+      ],
+      "github": "",
+      "caseStudy": {
+        "sections": [
+          { "heading": "The question", "body": "Sample text." },
+          { "heading": "What I did", "body": "Sample text, a little longer, to check spacing between paragraphs and headings when a section has more to say than the others." },
+          { "heading": "What I found", "body": "Sample text." }
+        ]
+      }
+    },
+    {
+      "id": "sample-enrollment-pipeline",
+      "sample": true,
+      "title": "Enrollment Pipeline",
+      "summary": "Short.",
+      "description": "A short sample description.",
+      "stack": ["SQL"],
+      "preview": { "format": "diagram", "image": null, "caption": "Sample diagram: how the data moves" },
+      "results": [],
+      "github": "",
+      "caseStudy": null
+    }
+  ]
+}

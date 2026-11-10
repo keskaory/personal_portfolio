@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kaory Gatmaitan</title>
+  <meta name="description" content="Kaory Gatmaitan. Data Science at UC Berkeley. Projects, experience and resume.">
+  <meta name="theme-color" content="#070908">
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Courier+Prime&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/site.css">
+  <link rel="stylesheet" href="css/scene.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body class="scene-page">
+  <a class="skip" href="contents.html">Skip to the index</a>
+
+  <header class="site-header">
+    <a class="site-name" href="#intro">Kaory Gatmaitan <span class="site-school" id="header-school"></span></a>
+    <nav aria-label="Site">
+      <a href="#projects">Projects</a>
+      <a href="#experience">Experience</a>
+      <a href="contents.html#resume" data-resume>Resume</a>
+      <a href="contents.html">Index</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1 class="visually-hidden">Kaory Gatmaitan, Data Science at UC Berkeley</h1>
+    <canvas id="scene-canvas" aria-label="A sequence of quiet late-night scenes. Use the chapter list, or the list of objects in each scene, to move with the keyboard."></canvas>
+
+    <!-- introduction title card: the professional facts, readable at once -->
+    <section class="title-card" aria-label="Introduction">
+      <p class="title-name" id="title-name"></p>
+      <p class="title-school" id="title-school"></p>
+      <p class="title-line" id="title-line"></p>
+      <p class="title-links">
+        <a href="#projects">See projects</a>
+        <a href="#experience">Experience</a>
+        <a href="contents.html#resume" data-resume>Resume</a>
+      </p>
+    </section>
+
+    <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
+
+    <p class="timecode" id="timecode" aria-hidden="true"></p>
+    <p class="caption" id="caption" aria-live="polite"></p>
+    <a class="next" id="next" href="#projects">Next</a>
+
+    <nav class="artifact-nav" aria-label="Objects in this scene">
+      <ul id="artifact-list"></ul>
+    </nav>
+
+    <section class="examine" id="examine" hidden aria-label="Looking closer">
+      <h2 class="examine-name" data-title></h2>
+      <p class="examine-meta" data-meta></p>
+      <p class="examine-short" data-body></p>
+      <div class="examine-extra" data-extra></div>
+      <p class="examine-hint" data-hint></p>
+      <div class="examine-actions" data-actions>
+        <button type="button" data-back>Put it back</button>
+      </div>
+      <p class="examine-sample" data-sample>Sample content</p>
+    </section>
+
+    <section class="fallback" id="fallback" hidden>
+      <h2>Kaory Gatmaitan</h2>
+      <p id="fallback-note">This browser can't show the 3D scenes. Everything is on the <a href="contents.html">index</a> as plain pages.</p>
+    </section>
+  </main>
+
+  <div class="fade in" id="fade" aria-hidden="true"></div>
+  <noscript><p class="noscript">This page needs JavaScript for the scenes. The <a href="contents.html">index</a> lists everything.</p></noscript>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

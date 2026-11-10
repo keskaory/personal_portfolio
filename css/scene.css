@@ -1,0 +1,156 @@
+/* The homepage scenes. */
+.scene-page { overflow: hidden; height: 100svh; }
+#scene-canvas { position: fixed; inset: 0; width: 100vw; height: 100svh; display: block; touch-action: none; }
+
+.site-school { color: var(--paper-dim); font-size: 15px; margin-left: 10px; font-style: italic; }
+
+/* ---- introduction title card */
+.title-card {
+  position: fixed; z-index: 10;
+  left: clamp(16px, 5vw, 64px); bottom: clamp(70px, 13vh, 130px);
+  max-width: min(520px, 46vw);
+  transition: opacity 0.8s ease, transform 0.9s cubic-bezier(.2, .7, .2, 1);
+}
+.title-card::before {
+  content: ""; position: absolute; inset: -80px -140px -60px -90px; z-index: -1; pointer-events: none;
+  background: radial-gradient(closest-side, rgb(3 4 4 / 0.7), rgb(3 4 4 / 0.35) 60%, rgb(3 4 4 / 0));
+}
+.title-name { margin: 0; font-size: clamp(44px, 5.6vw, 82px); line-height: 1.02; letter-spacing: -0.015em; }
+.title-school { margin: 14px 0 0; font-size: clamp(19px, 1.7vw, 23px); line-height: 1.4; }
+.title-line { margin: 10px 0 0; font-style: italic; color: var(--paper-dim); font-size: 19px; line-height: 1.45; max-width: 40ch; }
+.title-links { margin: 24px 0 0; display: flex; flex-wrap: wrap; gap: 8px 26px; font-size: 19px; }
+.title-links a:first-child { text-decoration-color: var(--amber); }
+body:not([data-stop="intro"]) .title-card,
+.examining .title-card { opacity: 0; transform: translateY(10px); pointer-events: none; visibility: hidden; transition: opacity 0.6s ease, transform 0.6s ease, visibility 0s 0.6s; }
+
+/* ---- chapters along the right edge */
+.chapters {
+  position: fixed; z-index: 11; right: clamp(16px, 3vw, 40px); top: 50%; transform: translateY(-50%);
+  font-size: 16px; text-align: right;
+  transition: opacity 0.6s ease;
+}
+.chapters ol { list-style: none; margin: 0; padding: 0; }
+.chapters > ol > li { margin: 0 0 16px; }
+.chapters a { text-decoration: none; color: rgb(233 226 211 / 0.42); transition: color 0.3s; }
+.chapters a:hover { color: var(--paper); }
+.chapters .chapter.current > a { color: var(--paper); }
+.chapters li ol { margin-top: 4px; font-size: 14px; font-family: var(--sans); }
+.chapters li ol li { margin: 3px 0; }
+.chapters li ol a[aria-current] { color: var(--amber); }
+.chapters > ol > li > a[aria-current] { color: var(--paper); }
+.examining .chapters { opacity: 0; pointer-events: none; }
+
+/* time of night, set small like a script note */
+.timecode {
+  position: fixed; left: clamp(16px, 4vw, 44px); bottom: 26px; z-index: 10; margin: 0;
+  font-style: italic; font-size: 17px; color: var(--paper-dim);
+}
+
+/* the way on */
+.next {
+  position: fixed; right: clamp(16px, 3vw, 40px); bottom: 24px; z-index: 11;
+  font-size: 17px; color: var(--paper-dim); text-decoration-color: rgb(233 226 211 / 0.3);
+  transition: opacity 0.5s, color 0.3s;
+}
+.next:hover { color: var(--paper); }
+.examining .next { opacity: 0; pointer-events: none; }
+
+/* subtitle line */
+.caption {
+  position: fixed; left: 50%; bottom: 9vh; z-index: 10; margin: 0;
+  transform: translateX(-50%);
+  max-width: min(90vw, 44ch); text-align: center;
+  font-family: var(--sans); font-size: 18px; line-height: 1.4; letter-spacing: 0.01em;
+  color: var(--paper);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.9), 0 0 1px rgb(0 0 0 / 0.9);
+  opacity: 0; transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+.caption.on { opacity: 1; }
+.examining .caption { opacity: 0; }
+
+/* keyboard list of objects: out of sight until it has focus */
+.artifact-nav {
+  position: fixed; left: clamp(16px, 4vw, 44px); bottom: 64px; z-index: 12;
+  font-family: var(--sans); font-size: 15px;
+}
+.artifact-nav ul { list-style: none; margin: 0; padding: 0; }
+.artifact-nav li { margin: 2px 0; }
+.artifact-nav a { display: inline-block; padding: 2px 0; text-decoration: none; position: absolute; left: -9999px; }
+.artifact-nav:focus-within { background: rgb(4 6 5 / 0.8); padding: 10px 14px; margin: -10px -14px; }
+.artifact-nav:focus-within a { position: static; color: var(--paper-dim); }
+.artifact-nav a:focus { color: var(--paper); }
+
+/* ---- the note beside whatever you are holding */
+.examine {
+  position: fixed; z-index: 15;
+  right: clamp(16px, 7vw, 120px); top: 50%;
+  width: min(360px, 36vw);
+  max-height: calc(100svh - 160px); overflow-y: auto;
+  transform: translateY(-46%);
+  opacity: 0; transition: opacity 0.7s ease, transform 0.9s cubic-bezier(.2, .7, .2, 1);
+  scrollbar-width: thin; scrollbar-color: rgb(233 226 211 / 0.25) transparent;
+}
+.examine.on { opacity: 1; transform: translateY(-50%); }
+.examine[data-side="left"] { right: auto; left: clamp(16px, 7vw, 120px); }
+.examine::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse 36% 64% at var(--glow-x, 78%) 50%, rgb(4 6 5 / 0.88), rgb(4 6 5 / 0.62) 55%, rgb(4 6 5 / 0));
+}
+.examine[data-side="left"]::before { --glow-x: 22%; }
+.examine-name { margin: 0 0 8px; font-weight: 400; font-size: clamp(28px, 2.8vw, 40px); line-height: 1.14; text-wrap: balance; }
+.examine-meta { margin: 0 0 16px; font-style: italic; color: var(--paper-dim); font-size: 17px; line-height: 1.45; }
+.examine-short { margin: 0 0 18px; font-size: 19px; line-height: 1.5; }
+.examine-facts { display: flex; flex-wrap: wrap; gap: 14px 28px; margin: 0 0 20px; }
+.examine-facts div { min-width: 0; max-width: 150px; }
+.examine-facts dt { font-size: 28px; line-height: 1.1; font-variant-numeric: tabular-nums lining-nums; }
+.examine-facts dd { margin: 4px 0 0; font-family: var(--sans); font-size: 13px; line-height: 1.4; color: var(--paper-dim); }
+.examine-list-heading { margin: 0 0 4px; font-family: var(--sans); font-size: 13px; color: var(--paper-dim); }
+.examine-list { margin: 0 0 20px; padding: 0; list-style: none; font-size: 17px; line-height: 1.45; }
+.examine-list li { margin: 0 0 6px; padding-left: 14px; text-indent: -14px; }
+.examine-list li::before { content: "– "; color: var(--paper-dim); }
+.examine-hint { margin: 0 0 22px; font-family: var(--sans); font-size: 14px; color: var(--paper-dim); }
+.examine-actions { display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: baseline; font-size: 18px; }
+.examine-actions a.primary { text-decoration-color: var(--amber); }
+.examine-actions button {
+  background: none; border: none; padding: 0; cursor: pointer; color: var(--paper-dim);
+  text-decoration: underline; text-underline-offset: 0.22em; text-decoration-thickness: 1px; text-decoration-color: rgb(233 226 211 / 0.3);
+}
+.examine-actions button:hover { color: var(--paper); }
+.examine-sample { margin: 22px 0 0; font-family: var(--sans); font-size: 12px; letter-spacing: 0.04em; color: #c47a68; }
+
+/* when there is no 3D */
+.fallback { position: relative; z-index: 5; padding: 140px clamp(16px, 6vw, 80px); max-width: 68ch; }
+.fallback h2 { font-weight: 400; font-size: 40px; margin: 0 0 12px; }
+.scene-page:has(.fallback:not([hidden])) { overflow: auto; height: auto; }
+.scene-page:has(.fallback:not([hidden])) :is(.title-card, .chapters, .next, .timecode) { display: none; }
+.noscript { position: relative; z-index: 95; padding: 140px 24px; max-width: 60ch; }
+
+/* ---- phones and tall windows */
+@media (max-width: 720px), (max-aspect-ratio: 85/100) {
+  .site-school { display: block; margin: 2px 0 0; font-size: 14px; }
+  .chapters { display: none; }
+  .title-card { left: 16px; right: 16px; bottom: 64px; max-width: none; }
+  .title-card::before { inset: -60px -16px -64px; background: linear-gradient(rgb(3 4 4 / 0), rgb(3 4 4 / 0.82) 34%); }
+  .title-name { font-size: 46px; }
+  .title-links { gap: 8px 20px; font-size: 18px; }
+  .examine {
+    left: 16px; right: 16px; top: auto; bottom: 22px; width: auto; max-height: 52svh;
+    transform: translateY(12px);
+    padding-top: 16px;
+  }
+  .examine.on { transform: none; }
+  .examine::before { background: linear-gradient(rgb(4 6 5 / 0) 40%, rgb(4 6 5 / 0.86) 62%); }
+  .examine-name { font-size: 28px; }
+  .examine-short { font-size: 17px; margin-bottom: 12px; }
+  .examine-facts dt { font-size: 24px; }
+  .examining .timecode { opacity: 0; }
+  .caption { bottom: 64px; }
+  body[data-stop="intro"] .caption { bottom: auto; top: 112px; }
+}
+
+/* keep the header readable when something bright fills the top of the frame */
+.scene-page .site-header::before {
+  content: ""; position: absolute; inset: 0 0 -40px; z-index: -1; pointer-events: none;
+  background: linear-gradient(rgb(4 5 5 / 0.7), rgb(4 5 5 / 0));
+}

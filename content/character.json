@@ -1,0 +1,74 @@
+{
+  "_note": "The character's look, as data. Lengths are meters (height 1.78 m). Skin and hair colors come from the reference photos; the outfit is the plain black one. The face texture is baked from the front photo with dev/character.html; 'photo' holds that photo's landmarks in pixels.",
+  "height": 1.78,
+  "colors": {
+    "skin": "#c79a89",
+    "skinShadow": "#a87a6a",
+    "hair": "#141113",
+    "iris": "#2a1c16",
+    "hoodie": "#27282d",
+    "hoodieRib": "#2b2c31",
+    "clothHighlight": "112,120,138",
+    "pants": "#121316",
+    "boots": "#0b0b0c",
+    "drawstring": "#2b2c30",
+    "silver": "#c8c8c6",
+    "chopsticks": "#3f7a58"
+  },
+  "body": {
+    "shoulderWidth": 0.4,
+    "hipWidth": 0.18,
+    "neckLength": 0.09,
+    "armLength": 0.55,
+    "legLength": 0.86
+  },
+  "hair": {
+    "_note": "Two-block cut: short clipped sides and back, a longer top layer that overhangs them, the fringe falling to the brows. 'parting' is where the fringe breaks, in degrees from center (negative is the character's right).",
+    "fringeLength": 0.036,
+    "parting": -14,
+    "topLength": 0.03,
+    "sideFade": 0.5
+  },
+  "face": {
+    "texture": "assets/character/face.png",
+    "mole": true,
+    "earrings": {
+      "left": [
+        "hoop",
+        "hoop"
+      ],
+      "right": []
+    },
+    "photo": {
+      "src": "dev/ref/face-front.jpg",
+      "flip": true,
+      "eyes": [
+        [
+          338,
+          328
+        ],
+        [
+          440,
+          327
+        ]
+      ],
+      "mouth": [
+        390,
+        437
+      ],
+      "chin": [
+        392,
+        508
+      ]
+    },
+    "molePos": [
+      0.043,
+      0.099
+    ]
+  },
+  "outfit": {
+    "hoodie": true,
+    "pants": true,
+    "boots": true
+  }
+}

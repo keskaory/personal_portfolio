@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fragrance · Kaory Gatmaitan</title>
+  <meta name="theme-color" content="#070908">
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="site-name" href="index.html">Kaory Gatmaitan</a>
+    <nav aria-label="Site">
+      <a href="index.html#projects">Projects</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="contents.html#resume" data-resume>Resume</a>
+      <a href="contents.html">Index</a>
+    </nav>
+  </header>
+
+  <main class="page fragrance">
+    <div class="page-inner wide">
+      <a class="back" id="back" href="index.html">Back to the window</a>
+      <h1 id="name">Fragrance</h1>
+      <p class="meta" id="meta"></p>
+
+      <div class="fragrance-body">
+        <div class="fragrance-text">
+          <h2>The notes</h2>
+          <p id="notes"></p>
+          <h2>What it brings back</h2>
+          <p id="memory"></p>
+          <h2>When I wear it</h2>
+          <p id="wear"></p>
+          <h2>How I came to have it</h2>
+          <p id="acquired"></p>
+        </div>
+        <figure class="photo-slot">
+          <div class="photo-frame" role="img" aria-label="Photo placeholder">A photo of this bottle goes here</div>
+        </figure>
+      </div>
+
+      <nav class="sibling-nav" aria-label="Other fragrances">
+        <a id="prev" href="#"></a>
+        <a id="next" href="#"></a>
+      </nav>
+    </div>
+  </main>
+
+  <div class="fade in" id="fade" aria-hidden="true"></div>
+  <script type="module" src="js/pages/fragrance-page.js"></script>
+</body>
+</html>

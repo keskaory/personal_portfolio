@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Character preview</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root { color-scheme: light; --ink: #1f2120; --muted: #5d615f; --line: #c9cbc9; }
+    * { box-sizing: border-box; }
+    body { margin: 0; height: 100vh; display: grid; grid-template-columns: 1fr minmax(240px, 30vw); background: #9c9e9d; color: var(--ink); font: 14px/1.45 "Helvetica Neue", Arial, sans-serif; overflow: hidden; }
+    #view { position: relative; min-width: 0; }
+    canvas { display: block; width: 100%; height: 100%; }
+    .bar { position: absolute; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .bar.top { top: 12px; }
+    .bar.bottom { bottom: 12px; }
+    .group { display: flex; gap: 4px; align-items: center; background: rgb(255 255 255 / 0.72); padding: 4px 6px; border-radius: 6px; }
+    .group span { color: var(--muted); margin: 0 4px 0 2px; font-size: 12px; }
+    button { font: inherit; font-size: 13px; border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 4px; padding: 3px 8px; cursor: pointer; }
+    button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+    button:focus-visible { outline: 2px solid #2b5fa8; outline-offset: 1px; }
+    aside { background: #e9eae9; border-left: 1px solid #b9bbba; display: flex; flex-direction: column; min-height: 0; }
+    aside header { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    aside h1 { font-size: 14px; margin: 0 0 4px; }
+    aside p { margin: 0; color: var(--muted); font-size: 12px; }
+    .refs { display: flex; gap: 4px; padding: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+    .refs button { padding: 0; width: 46px; height: 58px; overflow: hidden; }
+    .refs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .ref-big { flex: 1; min-height: 0; display: grid; place-items: center; padding: 8px; }
+    .ref-big img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .bake { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border-top: 1px solid var(--line); }
+    .bake canvas { width: 96px; height: auto; image-rendering: pixelated; border: 1px solid var(--line); }
+    .bake p { margin: 0; font-size: 12px; color: var(--muted); }
+    .note { padding: 8px 12px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div id="view">
+    <canvas id="c"></canvas>
+    <div class="bar top">
+      <div class="group" role="group" aria-label="Camera"><span>View</span>
+        <button data-view="front">Front</button><button data-view="three">¾</button><button data-view="left">Left side</button><button data-view="right">Right side</button><button data-view="back">Back</button><button data-view="face">Face</button><button data-view="hair">Hair side</button>
+      </div>
+      <div class="group" role="group" aria-label="Pose"><span>Pose</span>
+        <button data-pose="standing" aria-pressed="true">Standing</button><button data-pose="relaxed">Relaxed</button><button data-pose="seated">Seated</button>
+      </div>
+    </div>
+    <div class="bar bottom">
+      <div class="group" role="group" aria-label="Expression and gestures"><span>Act</span>
+        <button data-act="blink">Blink</button><button data-toggle="smile">Smile</button><button data-act="lookDownLine">Look down the line</button><button data-act="lookDown">Look down</button><button data-act="shiftWeight">Shift weight</button><button data-act="eat">Eat</button>
+      </div>
+      <div class="group" role="group" aria-label="Display"><span>Show</span>
+        <button data-toggle="follow" aria-pressed="true">Follow cursor</button><button data-toggle="turntable">Turntable</button><button data-toggle="wire">Wireframe</button><button data-toggle="bones">Bones</button>
+      </div>
+    </div>
+  </div>
+  <aside>
+    <header>
+      <h1>Character preview</h1>
+      <p>Drag to orbit, scroll to zoom. Pick a reference to compare at the matching view.</p>
+    </header>
+    <div class="refs" id="refs"></div>
+    <div class="ref-big"><img id="ref-img" src="ref/face-front.jpg" alt="Selected reference photo"></div>
+    <div class="bake">
+      <canvas id="face-out" width="256" height="346" aria-label="The baked face texture"></canvas>
+      <p>The face texture, baked from the front photo. This image, not the photo, is what the site uses.</p>
+    </div>
+    <p class="note">Reference photos load from dev/ref/, which git ignores. They are never published.</p>
+  </aside>
+
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    } }
+  </script>
+  <script type="module" src="character-preview.js"></script>
+</body>
+</html>

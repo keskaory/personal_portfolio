@@ -1,0 +1,407 @@
+// Homepage controller. The sequence of stops comes from content/site.json;
+// each stop is a camera shot in one of the scenes below. Scenes are built
+// the first time they are needed and share one renderer, camera and grade.
+//
+// Every scene returns { artifacts, shots, restFocus(shot), lights, update() }
+// and every artifact has { id, stop, hit or hits, focus, caption, panel(),
+// page, examine(portrait), leave(), drag?(dx), release?() }.
+import * as THREE from "three";
+import { webglAvailable, pickQuality, createRenderer, startLoop } from "./core/renderer.js";
+import { createPost } from "./core/post.js";
+import { createEnvironment } from "./core/environment.js";
+import { CameraRig } from "./core/camera-rig.js";
+import { Interaction } from "./core/interaction.js";
+import { buildIntro } from "./scenes/intro.js";
+import { buildArchive } from "./scenes/archive.js";
+import { buildLedge } from "./scenes/ledge.js";
+import { createCaption } from "./ui/caption.js";
+import { createExaminePanel } from "./ui/examine-panel.js";
+import { createChapterNav } from "./ui/chapters.js";
+import { loadAll, linkOr } from "./lib/content.js";
+
+const SCENES = { intro: buildIntro, archive: buildArchive, ledge: buildLedge };
+
+const $ = s => document.querySelector(s);
+const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const fade = $("#fade");
+
+function fillTitleCard(site) {
+  const { person, links } = site;
+  $("#title-name").textContent = person.name;
+  $("#title-school").textContent = `${person.school}. ${person.graduation}.`;
+  $("#title-line").textContent = person.line;
+  $("#header-school").textContent = person.school;
+  const resume = linkOr(links.resume, "contents.html#resume");
+  document.querySelectorAll("[data-resume]").forEach(a => (a.href = resume));
+}
+
+function showFallback(message) {
+  $("#fallback").hidden = false;
+  if (message) $("#fallback-note").textContent = message;
+  $("#scene-canvas").hidden = true;
+  fade.classList.remove("in");
+}
+
+async function main() {
+  let content;
+  try {
+    content = await loadAll();
+  } catch {
+    return showFallback("The page couldn't load its content. Try reloading.");
+  }
+  fillTitleCard(content.site);
+  const stops = content.site.stops;
+  if (!webglAvailable()) return showFallback();
+
+  await Promise.race([
+    Promise.all([document.fonts.load('46px "Courier Prime"'), document.fonts.ready]),
+    new Promise(r => setTimeout(r, 2500)),
+  ]).catch(() => {});
+
+  const quality = pickQuality();
+  const canvas = $("#scene-canvas");
+  const renderer = createRenderer(canvas, quality);
+  const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.01, 20);
+  const environment = createEnvironment(renderer);
+
+  // ---- scenes, built on first use
+  const built = {};
+  function sceneFor(name) {
+    if (built[name]) return built[name];
+    const scene = new THREE.Scene();
+    scene.environment = environment;
+    scene.environmentIntensity = 0.5;
+    const api = SCENES[name](scene, content, { reducedMotion: reduced });
+    if (quality === "low") scene.traverse(o => { if (o.isLight && o.shadow) o.shadow.mapSize.set(1024, 1024); });
+    built[name] = { scene, api };
+    return built[name];
+  }
+
+  const first = sceneFor(stops[0].scene);
+  const post = createPost(renderer, first.scene, camera, { depthOfField: quality === "high" });
+  const rig = new CameraRig(camera, { reducedMotion: reduced });
+  const caption = createCaption($("#caption"));
+  const chapters = createChapterNav($("#chapters"), stops, i => goTo(i));
+
+  // which stop each artifact lives on, without building every scene
+  const homeStop = {};
+  const stopIndex = id => stops.findIndex(s => s.id === id);
+  content.projects.forEach(p => (homeStop[p.id] = stopIndex("projects")));
+  content.experience.forEach(e => (homeStop[e.id] = stopIndex("experience")));
+  content.fragrances.forEach(f => (homeStop[f.id] = stopIndex("ledge")));
+  ["intro-letter", "intro-resume", "intro-photo"].forEach(id => (homeStop[id] = stopIndex("intro")));
+
+  let current = 0;
+  let active = first;
+  let mode = "rest"; // rest | moving | examine | leaving
+  let hovered = null;
+  let selected = null;
+  let focusDist = 0.6;
+  let aperture = 0.02;
+  let attention = 0;
+
+  const portrait = () => innerWidth / innerHeight < 0.85;
+  const shotFor = (api, stop) => (portrait() && api.shots[stop.shot + "Portrait"]) || api.shots[stop.shot];
+  const stopArtifacts = () => active.api.artifacts.filter(a => a.stop === stops[current].shot);
+  const findArtifact = id => active.api.artifacts.find(a => a.id === id);
+
+  const panel = createExaminePanel($("#examine"), {
+    onPage: href => leave(selected, href),
+    onBack: () => putBack(),
+  });
+
+  const interaction = new Interaction(canvas, camera, [], {
+    hover: id => {
+      hovered = id ? findArtifact(id) : null;
+      if (mode !== "rest") return;
+      if (hovered) caption.show(hovered.caption);
+      else caption.hide();
+    },
+    pointer: (x, y) => rig.setPointer(x, y),
+    select: id => {
+      const a = findArtifact(id);
+      if (mode === "rest" || (mode === "examine" && a !== selected)) examine(a);
+    },
+    empty: () => putBack(),
+    drag: dx => { if (mode === "examine" && selected && selected.drag) selected.drag(dx); },
+  });
+
+  // ---- what is on screen for the current stop
+  function showStop() {
+    const stop = stops[current];
+    chapters.set(current);
+    $("#timecode").textContent = stop.time || "";
+    document.body.dataset.stop = stop.id;
+    document.body.dataset.scene = stop.scene;
+    const next = stops[current + 1];
+    const nextLink = $("#next");
+    nextLink.textContent = next ? `Next: ${next.label}` : "Back to the start";
+    nextLink.href = `#${(next || stops[0]).id}`;
+    interaction.setHits(stopArtifacts().flatMap(a => a.hits || [a.hit]));
+
+    // keyboard: the objects in this shot as a list of links
+    const list = $("#artifact-list");
+    list.innerHTML = "";
+    stopArtifacts().forEach(a => {
+      const li = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = `#${a.id}`;
+      link.textContent = a.caption;
+      link.addEventListener("focus", () => { if (mode === "rest") { hovered = a; caption.show(a.caption); } });
+      link.addEventListener("blur", () => { if (mode === "rest" && hovered === a) { hovered = null; caption.hide(); } });
+      link.addEventListener("click", e => {
+        e.preventDefault();
+        examine(a);
+        setTimeout(() => panel.focus(), reduced ? 0 : 950);
+      });
+      li.appendChild(link);
+      list.appendChild(li);
+    });
+  }
+
+  function activate(name) {
+    active = sceneFor(name);
+    post.setScene(active.scene);
+  }
+
+  // ---- moving between stops
+  const tweens = [];
+  function tween(from, to, duration, set, done) {
+    if (reduced) duration = Math.min(duration, 0.25);
+    tweens.push({ from, to, duration, t: 0, set, done });
+  }
+  const backOff = (shot, d) => {
+    const dir = new THREE.Vector3().subVectors(shot.position, shot.target).normalize();
+    return { ...shot, position: shot.position.clone().addScaledVector(dir, d) };
+  };
+
+  function goTo(i, { instant = false, then = null } = {}) {
+    i = (i + stops.length) % stops.length;
+    if (mode === "examine") putBack();
+    if (mode !== "rest" && !instant) return;
+    const from = stops[current];
+    const to = stops[i];
+    if (i === current && !instant) { then?.(); return; }
+    current = i;
+    hovered = null;
+    caption.hide();
+    history.replaceState(null, "", `#${to.id}`);
+
+    if (instant) {
+      activate(to.scene);
+      showStop();
+      rig.set(shotFor(active.api, to));
+      then?.();
+      return;
+    }
+    mode = "moving";
+    if (from.scene === to.scene) {
+      showStop();
+      rig.go(shotFor(active.api, to), 1.9, () => { mode = "rest"; then?.(); });
+      return;
+    }
+    // a different scene: push forward into darkness, light passes, cut, settle into the new shot
+    const g = post.grade.uniforms;
+    const out = shotFor(active.api, from);
+    rig.go(backOff(out, -0.06), 0.8);
+    tween(1, 0, 0.75, v => (g.exposure.value = v));
+    if (!reduced) tween(1.3, 0.45, 0.75, v => (g.sweep.value = v));
+    setTimeout(() => {
+      activate(to.scene);
+      showStop();
+      const shot = shotFor(active.api, to);
+      rig.set(backOff(shot, 0.12));
+      rig.go(shot, 1.4, () => { mode = "rest"; then?.(); });
+      tween(0, 1, 0.9, v => (g.exposure.value = v));
+      if (!reduced) tween(0.45, -0.3, 0.8, v => (g.sweep.value = v), () => (g.sweep.value = -1));
+    }, reduced ? 250 : 760);
+  }
+
+  // ---- holding things
+  function examine(a, { instant = false } = {}) {
+    if (!a) return;
+    if (selected && selected !== a) selected.release?.();
+    mode = "examine";
+    selected = a;
+    hovered = null;
+    caption.hide();
+    const shot = a.examine(portrait());
+    $("#examine").dataset.side = shot.side || "right";
+    document.body.classList.add("examining");
+    history.replaceState(null, "", `#${a.id}`);
+    if (instant) { rig.set(shot); panel.open(a.panel()); return; }
+    rig.go(shot, 1.6);
+    setTimeout(() => { if (selected === a && mode === "examine") panel.open(a.panel()); }, reduced ? 0 : 900);
+  }
+
+  function putBack() {
+    if (mode !== "examine") return;
+    const a = selected;
+    a.release?.();
+    mode = "rest";
+    selected = null;
+    panel.close();
+    document.body.classList.remove("examining");
+    rig.go(shotFor(active.api, stops[current]), 1.4);
+    history.replaceState(null, "", `#${stops[current].id}`);
+    document.querySelector(`#artifact-list a[href="#${CSS.escape(a.id)}"]`)?.focus({ preventScroll: true });
+  }
+
+  function leave(a, href) {
+    if (!a || mode === "leaving") return;
+    mode = "leaving";
+    interaction.enabled = false;
+    a.release?.();
+    panel.close();
+    rig.go(a.leave(), 1.2);
+    setTimeout(() => fade.classList.add("in"), reduced ? 0 : 450);
+    setTimeout(() => { location.href = href; }, reduced ? 350 : 1250);
+  }
+
+  // ---- input: wheel, swipe and keys step one stop at a time
+  let wheelAcc = 0, wheelLock = 0;
+  window.addEventListener("wheel", e => {
+    if (mode !== "rest" || e.target.closest(".examine")) return;
+    const now = performance.now();
+    if (now < wheelLock) return;
+    wheelAcc += e.deltaY;
+    if (Math.abs(wheelAcc) > 60) {
+      goTo(current + Math.sign(wheelAcc));
+      wheelAcc = 0;
+      wheelLock = now + 1300;
+    }
+  }, { passive: true });
+  let touchY = null;
+  canvas.addEventListener("touchstart", e => { touchY = e.touches[0].clientY; }, { passive: true });
+  canvas.addEventListener("touchend", e => {
+    if (touchY === null || mode !== "rest") return;
+    const dy = touchY - e.changedTouches[0].clientY;
+    if (Math.abs(dy) > 60) goTo(current + Math.sign(dy));
+    touchY = null;
+  }, { passive: true });
+  window.addEventListener("keydown", e => {
+    if (e.target.closest("input, textarea")) return;
+    if (mode === "examine") {
+      if (e.key === "Escape") putBack();
+      if (selected?.drag && e.key === "ArrowLeft") selected.drag(-35);
+      if (selected?.drag && e.key === "ArrowRight") selected.drag(35);
+      return;
+    }
+    if (mode !== "rest") return;
+    if (["ArrowDown", "PageDown"].includes(e.key) || (e.key === " " && e.target === document.body)) { e.preventDefault(); goTo(current + 1); }
+    if (["ArrowUp", "PageUp"].includes(e.key)) { e.preventDefault(); goTo(current - 1); }
+  });
+  $("#next").addEventListener("click", e => { e.preventDefault(); goTo(current + 1); });
+
+  // links to #projects, #some-project-id and so on
+  function route(hash, instant) {
+    const id = decodeURIComponent(hash.replace(/^#/, ""));
+    if (!id) return false;
+    const si = stopIndex(id);
+    if (si >= 0) { goTo(si, { instant }); return true; }
+    if (homeStop[id] !== undefined && homeStop[id] >= 0) {
+      goTo(homeStop[id], { instant, then: () => examine(findArtifact(id), { instant }) });
+      return true;
+    }
+    return false;
+  }
+  window.addEventListener("hashchange", () => route(location.hash, false));
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    if (a.closest("#chapters") || a.id === "next") return;
+    a.addEventListener("click", e => { e.preventDefault(); route(a.getAttribute("href"), false); });
+  });
+
+  // ---- start
+  const from = new URLSearchParams(location.search).get("from");
+  activate(stops[0].scene);
+  showStop();
+  rig.set(shotFor(active.api, stops[0]));
+  if (from && homeStop[from] !== undefined) {
+    goTo(homeStop[from], { instant: true });
+    const a = findArtifact(from);
+    if (a) { hovered = a; caption.show(a.caption, { hold: 3000 }); setTimeout(() => { if (hovered === a && mode === "rest") hovered = null; }, 3000); }
+    history.replaceState(null, "", `#${stops[current].id}`);
+  } else {
+    route(location.hash, true);
+  }
+
+  window.addEventListener("pageshow", e => {
+    if (!e.persisted) return;
+    fade.classList.remove("in");
+    interaction.enabled = true;
+    if (mode === "leaving") { mode = "rest"; examine(selected, { instant: true }); }
+  });
+
+  function resize() {
+    const w = innerWidth, h = innerHeight;
+    renderer.setSize(w, h, false);
+    post.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    if (mode === "rest") rig.go(shotFor(active.api, stops[current]), 0.6);
+    if (mode === "examine") rig.go(selected.examine(portrait()), 0.6);
+  }
+  window.addEventListener("resize", resize);
+  renderer.setSize(innerWidth, innerHeight, false);
+  post.setSize(innerWidth, innerHeight);
+
+  // build the other scenes once the first one is on screen, so moving later doesn't stall
+  setTimeout(() => {
+    [...new Set(stops.map(s => s.scene))].forEach((name, k) => setTimeout(() => {
+      const b = sceneFor(name);
+      if (renderer.compileAsync) renderer.compileAsync(b.scene, camera).catch(() => {});
+    }, k * 400));
+  }, 1200);
+
+  const forward = new THREE.Vector3();
+  const tmp = new THREE.Vector3();
+  let firstFrame = true;
+
+  startLoop(renderer, (t, dt) => {
+    for (let i = tweens.length - 1; i >= 0; i--) {
+      const tw = tweens[i];
+      tw.t = Math.min(1, tw.t + dt / tw.duration);
+      const k = tw.t * tw.t * (3 - 2 * tw.t);
+      tw.set(tw.from + (tw.to - tw.from) * k);
+      if (tw.t === 1) { tweens.splice(i, 1); tw.done?.(); }
+    }
+    rig.parallax = mode === "examine" ? 0.004 : 0.01;
+    rig.update(dt, t);
+    active.api.update(t, dt, selected);
+
+    // focus: slowly pull to whatever is being looked at
+    const subject = selected || hovered;
+    const point = subject ? subject.focus : active.api.restFocus(stops[current].shot);
+    camera.getWorldDirection(forward);
+    const want = tmp.subVectors(point, camera.position).dot(forward);
+    focusDist += (want - focusDist) * Math.min(1, dt * 2.6);
+    const wantAperture = mode === "examine" ? 0.05 : 0.018;
+    aperture += (wantAperture - aperture) * Math.min(1, dt * 2);
+    post.setFocus(focusDist, aperture);
+
+    // a little more light falls on what you look at
+    const lights = active.api.lights;
+    if (lights.attention) {
+      const lit = mode === "rest" && hovered ? 1 : mode === "examine" ? 0.6 : 0;
+      attention += (lit - attention) * Math.min(1, dt * 2.2);
+      lights.attention.intensity = attention * 0.5;
+      if (subject) lights.attention.target.position.lerp(subject.focus, Math.min(1, dt * 4));
+    }
+
+    post.render(t);
+    if (firstFrame) {
+      firstFrame = false;
+      document.body.classList.add("ready");
+      requestAnimationFrame(() => fade.classList.remove("in"));
+    }
+  }, {
+    onSlow: () => {
+      console.info("Scene: running slowly, turning off depth of field and lowering resolution.");
+      post.bokeh.enabled = false;
+      renderer.setPixelRatio(1);
+      resize();
+    },
+  });
+}
+
+main();

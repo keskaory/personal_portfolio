@@ -57,8 +57,8 @@
       "label": "Home"
     }
   ],
-  "magazine": {
-    "masthead": "Kaory",
-    "issue": "Issue 01 · Sample edition"
+  "menu": {
+    "cover": "Menu",
+    "line": "Projects · Experience · Resume"
   }
 }

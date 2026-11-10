@@ -5,10 +5,10 @@
 import * as THREE from "three";
 import { cityTexture } from "./textures.js";
 
-export function rainWindow(width, height, { brightness = 0.9, depth = 0.22, fog = 0.35, tint = [1, 1, 1] } = {}) {
+export function rainWindow(width, height, { brightness = 0.9, depth = 0.22, fog = 0.35, tint = [1, 1, 1], city = null } = {}) {
   const mat = new THREE.ShaderMaterial({
     uniforms: {
-      tCity: { value: cityTexture() },
+      tCity: { value: city || cityTexture() },
       time: { value: 0 },
       brightness: { value: brightness },
       depth: { value: depth },

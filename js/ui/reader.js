@@ -1,4 +1,4 @@
-// The reading bar under the open magazine: where you are, the spread's
+// The reading bar under the open menu: where you are, the spread's
 // links (as real links), previous / next, and a way to close it. The
 // spread's text is also kept here for screen readers.
 import { escapeHTML } from "../lib/content.js";

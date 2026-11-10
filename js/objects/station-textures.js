@@ -268,7 +268,7 @@ export function routeMap(stops, here = 0) {
 
 // The city past the tracks, far out of focus: dark blocks, scattered lit
 // windows, and the colour of shop signs as blank glowing panels. No lettering.
-export function neonCity() {
+export function neonCity({ blur = 5, signs = 34 } = {}) {
   const W = 1024, H = 512;
   const [c, ctx] = cv(W, H);
   const rand = seeded(919);
@@ -291,8 +291,8 @@ export function neonCity() {
   }
   // signs: blocks of saturated colour hung off the buildings, lower down
   const colours = ["#ff3b2f", "#ff9a2e", "#2fe08a", "#ffd166", "#36c6ff", "#ff5e4d"];
-  ctx.filter = "blur(5px)";
-  for (let i = 0; i < 34; i++) {
+  ctx.filter = `blur(${blur}px)`;
+  for (let i = 0; i < signs; i++) {
     const vertical = rand() < 0.45;
     const w = vertical ? 14 + rand() * 14 : 40 + rand() * 70, h = vertical ? 50 + rand() * 80 : 16 + rand() * 20;
     const x = rand() * W, y = 250 + rand() * 200;
@@ -301,7 +301,8 @@ export function neonCity() {
     ctx.fillRect(x, y, w, h);
   }
   ctx.globalAlpha = 1;
-  // haze over the street
+  // the whole street is out of focus; then haze over it
+  if (blur > 8) { const copy = document.createElement("canvas"); copy.width = W; copy.height = H; copy.getContext("2d").drawImage(c, 0, 0); ctx.filter = `blur(${blur * 0.8}px)`; ctx.drawImage(copy, 0, 0); }
   ctx.filter = "blur(30px)";
   ctx.fillStyle = "rgba(255,120,80,0.10)";
   ctx.fillRect(0, 380, W, 140);

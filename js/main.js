@@ -14,6 +14,7 @@ import { Interaction } from "./core/interaction.js";
 import { buildIntro } from "./scenes/intro.js";
 import { buildStation } from "./scenes/station.js";
 import { buildRestaurant } from "./scenes/restaurant.js";
+import { buildApartment } from "./scenes/apartment.js";
 import { createReader } from "./ui/reader.js";
 import { buildArchive } from "./scenes/archive.js";
 import { buildLedge } from "./scenes/ledge.js";
@@ -22,7 +23,7 @@ import { createExaminePanel } from "./ui/examine-panel.js";
 import { createChapterNav } from "./ui/chapters.js";
 import { loadAll, linkOr } from "./lib/content.js";
 
-const SCENES = { station: buildStation, restaurant: buildRestaurant, intro: buildIntro, archive: buildArchive, ledge: buildLedge };
+const SCENES = { station: buildStation, restaurant: buildRestaurant, apartment: buildApartment, intro: buildIntro, archive: buildArchive, ledge: buildLedge };
 
 const $ = s => document.querySelector(s);
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -92,7 +93,8 @@ async function main() {
   content.projects.forEach(p => (homeStop[p.id] = stopIndex("projects")));
   content.experience.forEach(e => (homeStop[e.id] = stopIndex("experience")));
   homeStop.magazine = stopIndex("restaurant");
-  content.fragrances.forEach(f => (homeStop[f.id] = stopIndex("ledge")));
+  content.fragrances.forEach(f => (homeStop[f.id] = stopIndex("apartment")));
+  ["apt-books", "apt-laptop", "apt-crt", "apt-jewelry", "apt-photos", "apt-volleyball", "apt-rail"].forEach(id => (homeStop[id] = stopIndex("apartment")));
   ["station-letter", "station-ticket", "station-board"].forEach(id => (homeStop[id] = stopIndex("station")));
 
   let current = 0;
@@ -253,8 +255,8 @@ async function main() {
       activate(to.scene);
       showStop();
       const shot = shotFor(active.api, to);
-      rig.set(backOff(shot, 0.12));
-      rig.go(shot, 1.4, arrived);
+      rig.set(active.api.entryShot && !reduced ? active.api.entryShot(portrait()) : backOff(shot, 0.12));
+      rig.go(shot, active.api.entryShot ? 2.4 : 1.4, arrived);
       tween(0, 1, 0.9, v => (g.exposure.value = v));
       if (!reduced) tween(0.45, -0.3, 0.8, v => (g.sweep.value = v), () => (g.sweep.value = -1));
     }, reduced ? 250 : 760);

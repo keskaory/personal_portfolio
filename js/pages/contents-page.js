@@ -5,7 +5,7 @@ import { urls, linkOr } from "../lib/content.js";
 
 const ready = await startPage();
 if (ready) {
-  const { site, projects, experience, fragrances } = ready.content;
+  const { site, projects, experience, fragrances, collections } = ready.content;
   const { person, links } = site;
   const sample = flag => (flag ? ` <span class="tag">Sample</span>` : "");
   const contact = [
@@ -41,6 +41,10 @@ if (ready) {
 
     <h2 id="beyond">Beyond the work</h2>
     <ul class="index-list">${fragrances.map(f => `<li><a href="${urls.fragrance(f.id)}">${escapeHTML(f.name)}</a>${sample(f.sample)} <span class="index-sub">${escapeHTML(String(f.size))} ml</span></li>`).join("")}</ul>
+    ${Object.entries(collections || {}).filter(([k]) => !k.startsWith("_")).map(([, c]) => `
+      <h3 class="index-h3">${escapeHTML(c.title)}${sample(c.sample)}</h3>
+      ${c.intro ? `<p class="index-sub">${escapeHTML(c.intro)}</p>` : ""}
+      ${c.items && c.items.length ? `<ul class="index-list compact">${c.items.map(i => `<li>${escapeHTML(i)}</li>`).join("")}</ul>` : ""}`).join("")}
   `);
   ready.done();
   if (location.hash) document.querySelector(location.hash)?.scrollIntoView();

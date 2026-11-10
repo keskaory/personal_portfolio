@@ -13,8 +13,8 @@ async function load(name) {
 }
 
 export async function loadAll() {
-  const [site, p, e, f] = await Promise.all([load("site"), load("projects"), load("experience"), load("fragrances")]);
-  return { site, projects: p.projects, experience: e.experience, fragrances: f.fragrances };
+  const [site, p, e, f, collections] = await Promise.all([load("site"), load("projects"), load("experience"), load("fragrances"), load("collections")]);
+  return { site, projects: p.projects, experience: e.experience, fragrances: f.fragrances, collections };
 }
 
 export const urls = {

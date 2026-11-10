@@ -143,3 +143,5 @@ body:not(.scene-page) .site-header { position: absolute; }
 .index-sub { display: block; color: var(--paper-dim); font-size: 17px; line-height: 1.45; }
 .index-stack { display: block; font-family: var(--sans); font-size: 13px; margin-top: 2px; }
 .contents h2 { scroll-margin-top: 40px; }
+.index-h3 { font-weight: 400; font-size: 22px; margin: 28px 0 4px; }
+.index-list.compact li { margin: 0 0 4px; font-size: 18px; }

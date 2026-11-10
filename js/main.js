@@ -13,6 +13,8 @@ import { CameraRig } from "./core/camera-rig.js";
 import { Interaction } from "./core/interaction.js";
 import { buildIntro } from "./scenes/intro.js";
 import { buildStation } from "./scenes/station.js";
+import { buildRestaurant } from "./scenes/restaurant.js";
+import { createReader } from "./ui/reader.js";
 import { buildArchive } from "./scenes/archive.js";
 import { buildLedge } from "./scenes/ledge.js";
 import { createCaption } from "./ui/caption.js";
@@ -20,7 +22,7 @@ import { createExaminePanel } from "./ui/examine-panel.js";
 import { createChapterNav } from "./ui/chapters.js";
 import { loadAll, linkOr } from "./lib/content.js";
 
-const SCENES = { station: buildStation, intro: buildIntro, archive: buildArchive, ledge: buildLedge };
+const SCENES = { station: buildStation, restaurant: buildRestaurant, intro: buildIntro, archive: buildArchive, ledge: buildLedge };
 
 const $ = s => document.querySelector(s);
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -89,6 +91,7 @@ async function main() {
   const stopIndex = id => stops.findIndex(s => s.id === id);
   content.projects.forEach(p => (homeStop[p.id] = stopIndex("projects")));
   content.experience.forEach(e => (homeStop[e.id] = stopIndex("experience")));
+  homeStop.magazine = stopIndex("restaurant");
   content.fragrances.forEach(f => (homeStop[f.id] = stopIndex("ledge")));
   ["station-letter", "station-ticket", "station-board"].forEach(id => (homeStop[id] = stopIndex("station")));
 
@@ -112,6 +115,25 @@ async function main() {
     onBack: () => putBack(),
   });
 
+  const reader = createReader($("#reader"), {
+    onPage: href => leave(selected, href),
+    onTurn: d => turnPage(d),
+    onClose: () => putBack(),
+  });
+  function turnPage(d) {
+    if (!selected?.reader) return;
+    selected.reader.turn(d, reduced);
+  }
+  // open the magazine on a stop that asks for it (projects, experience), or at one entry's spread
+  function openReader(section, entryId) {
+    const a = findArtifact("magazine");
+    if (!a) return;
+    const mag = a.reader;
+    const i = entryId ? Math.max(0, mag.spreads.findIndex(s => s.entry && s.entry.id === entryId)) : mag.sectionStart(section);
+    mag.go(i);
+    if (selected !== a) examine(a);
+  }
+
   const interaction = new Interaction(canvas, camera, [], {
     hover: id => {
       hovered = id ? findArtifact(id) : null;
@@ -121,6 +143,7 @@ async function main() {
     },
     pointer: (x, y) => rig.setPointer(x, y),
     select: id => {
+      if (id && id.startsWith("magazine:") && selected?.reader) { turnPage(id.endsWith("next") ? 1 : -1); return; }
       const a = findArtifact(id);
       if (mode === "rest" || (mode === "examine" && a !== selected)) examine(a);
     },
@@ -180,10 +203,21 @@ async function main() {
 
   function goTo(i, { instant = false, then = null } = {}) {
     i = (i + stops.length) % stops.length;
-    if (mode === "examine") putBack();
+    const read = stops[i].read;
+    // already reading in the same room: just turn to the section
+    if (read && selected?.reader && stops[i].scene === stops[current].scene) {
+      current = i;
+      showStop();
+      interaction.setHits([selected.reader.left, selected.reader.right]);
+      history.replaceState(null, "", `#${stops[i].id}`);
+      openReader(read);
+      return;
+    }
+    if (mode === "examine") putBack({ focus: false });
     if (mode !== "rest" && !instant) return;
     const from = stops[current];
     const to = stops[i];
+    if (read) { const prev = then; then = () => { openReader(read); prev?.(); }; }
     if (i === current && !instant) { then?.(); return; }
     current = i;
     hovered = null;
@@ -225,7 +259,10 @@ async function main() {
       if (!reduced) tween(0.45, -0.3, 0.8, v => (g.sweep.value = v), () => (g.sweep.value = -1));
     }, reduced ? 250 : 760);
     };
-    if (leaving.exit) leaving.exit(cut); else cut();
+    if (selected) putBack({ focus: false });
+    if (leaving.exitShot && !reduced) rig.go(leaving.exitShot(portrait()), 1.5, cut);
+    else if (leaving.exit) leaving.exit(cut);
+    else cut();
   }
 
   // ---- holding things
@@ -237,6 +274,15 @@ async function main() {
     hovered = null;
     caption.hide();
     const shot = a.examine(portrait());
+    a.onExamine?.();
+    if (a.reader) {
+      document.body.classList.add("reading");
+      interaction.setHits([a.reader.left, a.reader.right]);
+      if (instant) { rig.set(shot); reader.open(a.reader); return; }
+      rig.go(shot, 1.5);
+      setTimeout(() => { if (selected === a && mode === "examine") reader.open(a.reader); }, reduced ? 0 : 800);
+      return;
+    }
     $("#examine").dataset.side = shot.side || "right";
     document.body.classList.add("examining");
     history.replaceState(null, "", `#${a.id}`);
@@ -245,25 +291,27 @@ async function main() {
     setTimeout(() => { if (selected === a && mode === "examine") panel.open(a.panel()); }, reduced ? 0 : 900);
   }
 
-  function putBack() {
+  function putBack({ focus = true } = {}) {
     if (mode !== "examine") return;
     const a = selected;
     a.release?.();
     mode = "rest";
     selected = null;
     panel.close();
-    document.body.classList.remove("examining");
+    reader.close();
+    document.body.classList.remove("examining", "reading");
+    interaction.setHits(stopArtifacts().flatMap(x => x.hits || [x.hit]));
     rig.go(shotFor(active.api, stops[current]), 1.4);
     history.replaceState(null, "", `#${stops[current].id}`);
-    document.querySelector(`#artifact-list a[href="#${CSS.escape(a.id)}"]`)?.focus({ preventScroll: true });
+    if (focus) document.querySelector(`#artifact-list a[href="#${CSS.escape(a.id)}"]`)?.focus({ preventScroll: true });
   }
 
   function leave(a, href) {
     if (!a || mode === "leaving") return;
     mode = "leaving";
     interaction.enabled = false;
-    a.release?.();
     panel.close();
+    reader.close();
     rig.go(a.leave(), 1.2);
     setTimeout(() => fade.classList.add("in"), reduced ? 0 : 450);
     setTimeout(() => { location.href = href; }, reduced ? 350 : 1250);
@@ -272,6 +320,13 @@ async function main() {
   // ---- input: wheel, swipe and keys step one stop at a time
   let wheelAcc = 0, wheelLock = 0;
   window.addEventListener("wheel", e => {
+    if (mode === "examine" && selected?.reader) {
+      const now = performance.now();
+      if (now < wheelLock) return;
+      wheelAcc += e.deltaY;
+      if (Math.abs(wheelAcc) > 60) { turnPage(Math.sign(wheelAcc)); wheelAcc = 0; wheelLock = now + 700; }
+      return;
+    }
     if (mode !== "rest" || e.target.closest(".examine")) return;
     const now = performance.now();
     if (now < wheelLock) return;
@@ -292,6 +347,12 @@ async function main() {
   }, { passive: true });
   window.addEventListener("keydown", e => {
     if (e.target.closest("input, textarea")) return;
+    if (mode === "examine" && selected?.reader) {
+      if (e.key === "Escape") putBack();
+      if (e.key === "ArrowRight" || e.key === "PageDown") { e.preventDefault(); turnPage(1); }
+      if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); turnPage(-1); }
+      return;
+    }
     if (mode === "examine") {
       if (e.key === "Escape") putBack();
       if (selected?.drag && e.key === "ArrowLeft") selected.drag(-35);
@@ -327,7 +388,12 @@ async function main() {
   activate(stops[0].scene);
   showStop();
   rig.set(shotFor(active.api, stops[0]));
-  if (from && homeStop[from] !== undefined) {
+  const fromEntry = [...content.projects, ...content.experience].some(x => x.id === from);
+  if (from && fromEntry) {
+    goTo(homeStop[from], { instant: true });
+    openReader(null, from);
+    history.replaceState(null, "", `#${stops[current].id}`);
+  } else if (from && homeStop[from] !== undefined) {
     goTo(homeStop[from], { instant: true });
     const a = findArtifact(from);
     if (a) { hovered = a; caption.show(a.caption, { hold: 3000 }); setTimeout(() => { if (hovered === a && mode === "rest") hovered = null; }, 3000); }

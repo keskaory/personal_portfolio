@@ -28,20 +28,30 @@
       "titleCard": true
     },
     {
+      "id": "restaurant",
+      "scene": "restaurant",
+      "shot": "rest",
+      "chapter": "What I've Done",
+      "label": "The restaurant",
+      "time": "12:30 am"
+    },
+    {
       "id": "projects",
-      "scene": "archive",
-      "shot": "projects",
+      "scene": "restaurant",
+      "shot": "rest",
       "chapter": "What I've Done",
       "label": "Projects",
-      "time": "12:20 am"
+      "time": "12:30 am",
+      "read": "projects"
     },
     {
       "id": "experience",
-      "scene": "archive",
-      "shot": "experience",
+      "scene": "restaurant",
+      "shot": "rest",
       "chapter": "What I've Done",
       "label": "Experience",
-      "time": "12:55 am"
+      "time": "12:30 am",
+      "read": "experience"
     },
     {
       "id": "ledge",
@@ -51,5 +61,9 @@
       "label": "Fragrances",
       "time": "2:10 am"
     }
-  ]
+  ],
+  "magazine": {
+    "masthead": "Kaory",
+    "issue": "Issue 01 · Sample edition"
+  }
 }

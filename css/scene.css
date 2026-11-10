@@ -155,3 +155,34 @@ body:not([data-title="1"]) .title-card,
   content: ""; position: absolute; inset: 0 0 -40px; z-index: -1; pointer-events: none;
   background: linear-gradient(rgb(4 5 5 / 0.7), rgb(4 5 5 / 0));
 }
+
+/* ---- the reading bar under the open magazine */
+.reader {
+  position: fixed; z-index: 15; left: 50%; bottom: 22px; transform: translate(-50%, 10px);
+  width: min(920px, calc(100vw - 32px));
+  display: grid; grid-template-columns: 1fr auto auto; gap: 8px 28px; align-items: center;
+  padding: 14px 20px; background: rgb(8 10 9 / 0.82); border: 1px solid var(--line);
+  opacity: 0; transition: opacity 0.5s ease, transform 0.6s cubic-bezier(.2, .7, .2, 1);
+}
+.reader.on { opacity: 1; transform: translate(-50%, 0); }
+.reader-where { margin: 0; font-family: var(--sans); font-size: 13px; color: var(--paper-dim); }
+.reader-info { min-width: 0; }
+.reader-title { margin: 2px 0 0; font-weight: 400; font-size: 22px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reader-summary { display: none; margin: 4px 0 0; font-size: 16px; line-height: 1.4; color: var(--paper-dim); }
+.reader-sample { margin: 2px 0 0; font-family: var(--sans); font-size: 12px; color: #c47a68; }
+.reader-actions { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 17px; }
+.reader-actions a.primary { text-decoration-color: var(--amber); }
+.reader-nav { display: flex; gap: 14px; }
+.reader-nav button {
+  background: none; border: 1px solid var(--line); color: var(--paper); padding: 6px 12px; cursor: pointer;
+  font-family: var(--sans); font-size: 14px;
+}
+.reader-nav button:hover:not(:disabled) { border-color: var(--amber); }
+.reader-nav button:disabled { opacity: 0.35; cursor: default; }
+.reading .caption, .reading .title-card, .reading .timecode { opacity: 0; }
+@media (max-width: 720px), (max-aspect-ratio: 85/100) {
+  .reader { grid-template-columns: 1fr; bottom: 12px; padding: 12px 14px; gap: 8px; }
+  .reader-title { font-size: 19px; white-space: normal; }
+  .reader-summary { display: block; }
+  .reader-nav { justify-content: space-between; }
+}

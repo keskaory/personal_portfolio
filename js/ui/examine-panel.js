@@ -6,7 +6,7 @@
 // ordinary links (GitHub opens in a new tab).
 import { escapeHTML } from "../lib/content.js";
 
-export function createExaminePanel(el, { onPage, onBack }) {
+export function createExaminePanel(el, { onPage, onBack, onInternal }) {
   const title = el.querySelector("[data-title]");
   const meta = el.querySelector("[data-meta]");
   const body = el.querySelector("[data-body]");
@@ -42,7 +42,10 @@ export function createExaminePanel(el, { onPage, onBack }) {
         const link = document.createElement("a");
         link.href = a.href;
         link.textContent = a.label;
-        if (a.page) {
+        if (a.internal) {
+          link.className = "primary";
+          link.addEventListener("click", e => { e.preventDefault(); onInternal?.(a.href); });
+        } else if (a.page) {
           link.className = "primary";
           link.addEventListener("click", e => {
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;

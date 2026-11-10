@@ -12,6 +12,7 @@ import { createEnvironment } from "./core/environment.js";
 import { CameraRig } from "./core/camera-rig.js";
 import { Interaction } from "./core/interaction.js";
 import { buildIntro } from "./scenes/intro.js";
+import { buildStation } from "./scenes/station.js";
 import { buildArchive } from "./scenes/archive.js";
 import { buildLedge } from "./scenes/ledge.js";
 import { createCaption } from "./ui/caption.js";
@@ -19,7 +20,7 @@ import { createExaminePanel } from "./ui/examine-panel.js";
 import { createChapterNav } from "./ui/chapters.js";
 import { loadAll, linkOr } from "./lib/content.js";
 
-const SCENES = { intro: buildIntro, archive: buildArchive, ledge: buildLedge };
+const SCENES = { station: buildStation, intro: buildIntro, archive: buildArchive, ledge: buildLedge };
 
 const $ = s => document.querySelector(s);
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -89,7 +90,7 @@ async function main() {
   content.projects.forEach(p => (homeStop[p.id] = stopIndex("projects")));
   content.experience.forEach(e => (homeStop[e.id] = stopIndex("experience")));
   content.fragrances.forEach(f => (homeStop[f.id] = stopIndex("ledge")));
-  ["intro-letter", "intro-resume", "intro-photo"].forEach(id => (homeStop[id] = stopIndex("intro")));
+  ["station-letter", "station-ticket", "station-board"].forEach(id => (homeStop[id] = stopIndex("station")));
 
   let current = 0;
   let active = first;
@@ -107,6 +108,7 @@ async function main() {
 
   const panel = createExaminePanel($("#examine"), {
     onPage: href => leave(selected, href),
+    onInternal: href => { putBack(); setTimeout(() => route(href, false), reduced ? 0 : 450); },
     onBack: () => putBack(),
   });
 
@@ -132,6 +134,7 @@ async function main() {
     chapters.set(current);
     $("#timecode").textContent = stop.time || "";
     document.body.dataset.stop = stop.id;
+    document.body.dataset.title = stop.titleCard ? "1" : "";
     document.body.dataset.scene = stop.scene;
     const next = stops[current + 1];
     const nextLink = $("#next");
@@ -195,26 +198,34 @@ async function main() {
       return;
     }
     mode = "moving";
+    document.body.classList.add("moving");
+    const arrived = () => { mode = "rest"; document.body.classList.remove("moving"); then?.(); };
     if (from.scene === to.scene) {
       showStop();
-      rig.go(shotFor(active.api, to), 1.9, () => { mode = "rest"; then?.(); });
+      rig.go(shotFor(active.api, to), 1.9, arrived);
       return;
     }
-    // a different scene: push forward into darkness, light passes, cut, settle into the new shot
+    // a different scene: the scene may play its own exit first (the train
+    // arriving), then push forward into darkness, light passes, cut, settle
     const g = post.grade.uniforms;
     const out = shotFor(active.api, from);
+    const leaving = active.api;
+    const cut = () => {
     rig.go(backOff(out, -0.06), 0.8);
     tween(1, 0, 0.75, v => (g.exposure.value = v));
     if (!reduced) tween(1.3, 0.45, 0.75, v => (g.sweep.value = v));
     setTimeout(() => {
+      leaving.reset?.();
       activate(to.scene);
       showStop();
       const shot = shotFor(active.api, to);
       rig.set(backOff(shot, 0.12));
-      rig.go(shot, 1.4, () => { mode = "rest"; then?.(); });
+      rig.go(shot, 1.4, arrived);
       tween(0, 1, 0.9, v => (g.exposure.value = v));
       if (!reduced) tween(0.45, -0.3, 0.8, v => (g.sweep.value = v), () => (g.sweep.value = -1));
     }, reduced ? 250 : 760);
+    };
+    if (leaving.exit) leaving.exit(cut); else cut();
   }
 
   // ---- holding things
@@ -375,7 +386,9 @@ async function main() {
     camera.getWorldDirection(forward);
     const want = tmp.subVectors(point, camera.position).dot(forward);
     focusDist += (want - focusDist) * Math.min(1, dt * 2.6);
-    const wantAperture = mode === "examine" ? 0.05 : 0.018;
+    // blur strength per meter off focus; scenes measured in meters (the station) want much less
+    const dof = active.api.dof || { rest: 0.018, examine: 0.05 };
+    const wantAperture = mode === "examine" ? dof.examine : dof.rest;
     aperture += (wantAperture - aperture) * Math.min(1, dt * 2);
     post.setFocus(focusDist, aperture);
 

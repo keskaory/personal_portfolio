@@ -20,7 +20,8 @@
 .title-line { margin: 10px 0 0; font-style: italic; color: var(--paper-dim); font-size: 19px; line-height: 1.45; max-width: 40ch; }
 .title-links { margin: 24px 0 0; display: flex; flex-wrap: wrap; gap: 8px 26px; font-size: 19px; }
 .title-links a:first-child { text-decoration-color: var(--amber); }
-body:not([data-stop="intro"]) .title-card,
+body:not([data-title="1"]) .title-card,
+.moving .title-card,
 .examining .title-card { opacity: 0; transform: translateY(10px); pointer-events: none; visibility: hidden; transition: opacity 0.6s ease, transform 0.6s ease, visibility 0s 0.6s; }
 
 /* ---- chapters along the right edge */
@@ -146,7 +147,7 @@ body:not([data-stop="intro"]) .title-card,
   .examine-facts dt { font-size: 24px; }
   .examining .timecode { opacity: 0; }
   .caption { bottom: 64px; }
-  body[data-stop="intro"] .caption { bottom: auto; top: 112px; }
+  body[data-title="1"] .caption { bottom: auto; top: 112px; }
 }
 
 /* keep the header readable when something bright fills the top of the frame */

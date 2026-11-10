@@ -18,9 +18,38 @@
     "email": ""
   },
   "stops": [
-    { "id": "intro", "scene": "intro", "shot": "rest", "chapter": "Who I Am", "label": "Who I Am", "time": "11:50 pm" },
-    { "id": "projects", "scene": "archive", "shot": "projects", "chapter": "What I've Done", "label": "Projects", "time": "12:20 am" },
-    { "id": "experience", "scene": "archive", "shot": "experience", "chapter": "What I've Done", "label": "Experience", "time": "12:55 am" },
-    { "id": "ledge", "scene": "ledge", "shot": "rest", "chapter": "Beyond the Work", "label": "Fragrances", "time": "2:10 am" }
+    {
+      "id": "station",
+      "scene": "station",
+      "shot": "rest",
+      "chapter": "Who I Am",
+      "label": "The station",
+      "time": "11:40 pm",
+      "titleCard": true
+    },
+    {
+      "id": "projects",
+      "scene": "archive",
+      "shot": "projects",
+      "chapter": "What I've Done",
+      "label": "Projects",
+      "time": "12:20 am"
+    },
+    {
+      "id": "experience",
+      "scene": "archive",
+      "shot": "experience",
+      "chapter": "What I've Done",
+      "label": "Experience",
+      "time": "12:55 am"
+    },
+    {
+      "id": "ledge",
+      "scene": "ledge",
+      "shot": "rest",
+      "chapter": "Beyond the Work",
+      "label": "Fragrances",
+      "time": "2:10 am"
+    }
   ]
 }

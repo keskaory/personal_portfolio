@@ -88,11 +88,15 @@ body:not([data-title="1"]) .title-card,
 }
 .examine.on { opacity: 1; transform: translateY(-50%); }
 .examine[data-side="left"] { right: auto; left: clamp(16px, 7vw, 120px); }
-.examine::before {
-  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: radial-gradient(ellipse 36% 64% at var(--glow-x, 78%) 50%, rgb(4 6 5 / 0.88), rgb(4 6 5 / 0.62) 55%, rgb(4 6 5 / 0));
+/* a soft dark field behind the panel so its text reads over a bright scene.
+   It hangs off the page, not the panel: the panel's transform would trap it. */
+.scene-page::after {
+  content: ""; position: fixed; inset: 0; z-index: 14; pointer-events: none;
+  opacity: 0; transition: opacity 0.7s ease;
+  background: radial-gradient(ellipse 34% 66% at var(--scrim-x, 78%) 50%, rgb(4 6 5 / 0.84), rgb(4 6 5 / 0.55) 55%, rgb(4 6 5 / 0));
 }
-.examine[data-side="left"]::before { --glow-x: 22%; }
+.scene-page:has(.examine.on)::after { opacity: 1; }
+.scene-page:has(.examine[data-side="left"])::after { --scrim-x: 22%; }
 .examine-name { margin: 0 0 8px; font-weight: 400; font-size: clamp(28px, 2.8vw, 40px); line-height: 1.14; text-wrap: balance; }
 .examine-meta { margin: 0 0 16px; font-style: italic; color: var(--paper-dim); font-size: 17px; line-height: 1.45; }
 .examine-short { margin: 0 0 18px; font-size: 19px; line-height: 1.5; }
@@ -135,7 +139,7 @@ body:not([data-title="1"]) .title-card,
     padding-top: 16px;
   }
   .examine.on { transform: none; }
-  .examine::before { background: linear-gradient(rgb(4 6 5 / 0) 40%, rgb(4 6 5 / 0.86) 62%); }
+  .scene-page::after { background: linear-gradient(rgb(4 6 5 / 0) 40%, rgb(4 6 5 / 0.86) 62%); }
   .examine-name { font-size: 28px; }
   .examine-short { font-size: 17px; margin-bottom: 12px; }
   .examine-facts dt { font-size: 24px; }

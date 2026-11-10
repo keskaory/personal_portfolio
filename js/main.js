@@ -95,7 +95,7 @@ async function main() {
   homeStop.magazine = stopIndex("restaurant");
   content.fragrances.forEach(f => (homeStop[f.id] = stopIndex("apartment")));
   ["apt-books", "apt-laptop", "apt-crt", "apt-jewelry", "apt-photos", "apt-volleyball", "apt-rail"].forEach(id => (homeStop[id] = stopIndex("apartment")));
-  ["station-letter", "station-ticket", "station-board"].forEach(id => (homeStop[id] = stopIndex("station")));
+  ["station-letter", "station-ticket", "station-map", "station-train"].forEach(id => (homeStop[id] = stopIndex("station")));
 
   let current = 0;
   let active = first;
@@ -186,9 +186,12 @@ async function main() {
     });
   }
 
+  let entered = null;
   function activate(name) {
     active = sceneFor(name);
     post.setScene(active.scene);
+    // a scene can set itself going as you arrive (the train pulling in)
+    if (entered !== active) { entered = active; active.api.enter?.(); }
   }
 
   // ---- moving between stops

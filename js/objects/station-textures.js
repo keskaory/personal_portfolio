@@ -214,3 +214,97 @@ export function ticketTexture(person, sample) {
   }
   return tex(c);
 }
+
+// The route map in its backlit frame: one line, three stops, the one you're
+// at marked. Plain transit lettering in English; it is also the way on.
+export function routeMap(stops, here = 0) {
+  const W = 1024, H = 600;
+  const [c, ctx] = cv(W, H);
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#f6f3ea");
+  g.addColorStop(1, "#e7e2d4");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  const sans = '"Helvetica Neue", Helvetica, Arial, sans-serif';
+  ctx.fillStyle = "#1d2321";
+  ctx.font = `600 30px ${sans}`;
+  ctx.fillText("Route", 64, 84);
+  ctx.fillStyle = "#6a6e69";
+  ctx.font = `400 22px ${sans}`;
+  ctx.fillText("Tonight, in this order", 64, 118);
+  // the line
+  const y = 300, x0 = 150, x1 = W - 150;
+  ctx.strokeStyle = "#c8261f";
+  ctx.lineWidth = 16;
+  ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+  stops.forEach((s, i) => {
+    const x = x0 + (x1 - x0) * (i / (stops.length - 1));
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#1d2321";
+    ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.arc(x, y, i === here ? 26 : 19, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (i === here) { ctx.fillStyle = "#c8261f"; ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fill(); }
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#1d2321";
+    ctx.font = `600 34px ${sans}`;
+    ctx.fillText(s.name, x, y + 84);
+    ctx.fillStyle = "#5c615c";
+    ctx.font = `400 23px ${sans}`;
+    ctx.fillText(s.note, x, y + 120);
+    if (i === here) {
+      ctx.fillStyle = "#c8261f";
+      ctx.font = `600 21px ${sans}`;
+      ctx.fillText("YOU ARE HERE", x, y - 50);
+    }
+    ctx.textAlign = "left";
+  });
+  // a thin frame shadow inside the lightbox
+  ctx.strokeStyle = "rgba(0,0,0,0.12)";
+  ctx.lineWidth = 10;
+  ctx.strokeRect(5, 5, W - 10, H - 10);
+  return tex(c);
+}
+
+// The city past the tracks, far out of focus: dark blocks, scattered lit
+// windows, and the colour of shop signs as blank glowing panels. No lettering.
+export function neonCity() {
+  const W = 1024, H = 512;
+  const [c, ctx] = cv(W, H);
+  const rand = seeded(919);
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, "#0b1416");
+  sky.addColorStop(0.6, "#14201f");
+  sky.addColorStop(1, "#0a0e0d");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+  // buildings
+  for (let x = 0; x < W;) {
+    const w = 60 + rand() * 110, top = 60 + rand() * 180;
+    ctx.fillStyle = `rgb(${14 + rand() * 8},${20 + rand() * 8},${20 + rand() * 8})`;
+    ctx.fillRect(x, top, w, H - top);
+    for (let wy = top + 10; wy < H - 20; wy += 14) for (let wx = x + 6; wx < x + w - 8; wx += 12) {
+      const r = rand();
+      if (r > 0.86) { ctx.fillStyle = r > 0.96 ? "rgba(170,240,215,0.5)" : `rgba(255,${180 + rand() * 40},120,${0.3 + rand() * 0.4})`; ctx.fillRect(wx, wy, 5, 6); }
+    }
+    x += w + 4;
+  }
+  // signs: blocks of saturated colour hung off the buildings, lower down
+  const colours = ["#ff3b2f", "#ff9a2e", "#2fe08a", "#ffd166", "#36c6ff", "#ff5e4d"];
+  ctx.filter = "blur(5px)";
+  for (let i = 0; i < 34; i++) {
+    const vertical = rand() < 0.45;
+    const w = vertical ? 14 + rand() * 14 : 40 + rand() * 70, h = vertical ? 50 + rand() * 80 : 16 + rand() * 20;
+    const x = rand() * W, y = 250 + rand() * 200;
+    ctx.globalAlpha = 0.55 + rand() * 0.45;
+    ctx.fillStyle = colours[Math.floor(rand() * colours.length)];
+    ctx.fillRect(x, y, w, h);
+  }
+  ctx.globalAlpha = 1;
+  // haze over the street
+  ctx.filter = "blur(30px)";
+  ctx.fillStyle = "rgba(255,120,80,0.10)";
+  ctx.fillRect(0, 380, W, 140);
+  ctx.filter = "none";
+  return tex(c);
+}

@@ -176,10 +176,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   scene.add(lampGroup);
   const lamp = new THREE.PointLight("#ffb26a", 7.5, 6, 1.4);
   lamp.position.set(0.05, 1.38, -1.2);
-  lamp.castShadow = true;
-  lamp.shadow.mapSize.set(512, 512);
-  lamp.shadow.radius = 4;
-  lamp.shadow.bias = -0.002;
+  // no shadow from the lamp: a point light's shadow redraws the room six times; the window casts them
   scene.add(lamp);
   scene.add(new THREE.HemisphereLight("#55493a", "#1a140e", 1.45));
   // a bedside lamp just out of frame to the right, warm on the table and the dresser
@@ -271,11 +268,6 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   const dishHit = hitBox(0.2, 0.1, 0.2);
   dish.add(dishHit);
   scene.add(dish);
-  // a small spot from the lamp's side catches the silver
-  const glint = new THREE.SpotLight("#fff0dc", 3, 2.2, 0.18, 0.6, 1.5);
-  glint.position.set(0.6, 1.5, -0.6);
-  glint.target.position.set(0.96, DRESSER_Y, -1.2);
-  scene.add(glint, glint.target);
 
   // the CRT at the dresser's left end
   const crt = new THREE.Group();
@@ -399,9 +391,6 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   const sleep = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.003, 0.002), new THREE.MeshBasicMaterial({ color: "#ffffff" }));
   sleep.position.set(0.1, 0.004, 0.108);
   laptop.add(sleep);
-  const glow = new THREE.PointLight("#b9c8e6", 0.9, 1.2, 2);
-  glow.position.set(0, 0.12, 0.05);
-  laptop.add(glow);
   const laptopHit = hitBox(0.36, 0.26, 0.3);
   laptopHit.position.set(0, 0.1, -0.05);
   laptop.add(laptopHit);
@@ -538,7 +527,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
     panel: collectionPanel("photos"),
   });
   add({
-    id: "apt-volleyball", stop: "rest", hit: ball, object: ball, caption: "The volleyball",
+    id: "apt-volleyball", stop: "rest", hit: ball, object: ball, caption: "Pick up the volleyball",
     examine: shotAt(V(0.78, 0.12, -0.72), V(0.22, 0.3, 0.6), "left", 36),
     panel: collectionPanel("volleyball"),
   });

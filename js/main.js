@@ -154,6 +154,21 @@ async function main() {
   });
 
   // ---- what is on screen for the current stop
+  // once, the first time you settle somewhere without the title card: say that things can be picked up
+  let hinted = false;
+  try { hinted = localStorage.getItem("hint-seen") === "1"; } catch {}
+  function maybeHint() {
+    if (hinted || stops[current].titleCard) return;
+    const at = current;
+    setTimeout(() => {
+      if (hinted || at !== current || document.body.classList.contains("reading")) return;
+      if (mode !== "rest" || hovered) { maybeHint(); return; } // still arriving: try again shortly
+      hinted = true;
+      try { localStorage.setItem("hint-seen", "1"); } catch {}
+      caption.show(matchMedia("(hover: none)").matches ? "Tap things to look closer." : "Hover over things; click to pick them up.", { hold: 5200 });
+    }, 2600);
+  }
+
   function showStop() {
     const stop = stops[current];
     chapters.set(current);
@@ -165,6 +180,7 @@ async function main() {
     nextLink.textContent = next ? `Next: ${next.label}` : "Back to the start";
     nextLink.href = `#${(next || stops[0]).id}`;
     interaction.setHits(stopArtifacts().flatMap(a => a.hits || [a.hit]));
+    maybeHint();
 
     // keyboard: the objects in this shot as a list of links
     const list = $("#artifact-list");

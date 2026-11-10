@@ -162,8 +162,8 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
     glow.position.set(x - 0.3, 0.008, -1.3);
     scene.add(glow);
   }
-  const lamps = [-8.25, -3.75, 0.75, 5.25].map(x => {
-    const l = new THREE.PointLight("#cdf3e2", 8, 9, 1.6);
+  const lamps = [-3.75, 5.25].map(x => {
+    const l = new THREE.PointLight("#cdf3e2", 10, 11, 1.5);
     l.position.set(x, 2.95, -1.5);
     scene.add(l);
     return l;
@@ -230,9 +230,6 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   const mapFace = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.88), new THREE.MeshBasicMaterial({ map: routeMap(ROUTE, 0), color: new THREE.Color(1.15, 1.15, 1.12) }));
   mapFace.position.set(mapX, mapY, -4.128);
   scene.add(mapFace);
-  const mapLight = new THREE.PointLight("#f3f0e4", 1.6, 2.4, 1.6);
-  mapLight.position.set(mapX, mapY, -3.7);
-  scene.add(mapLight);
 
   // ---- the departure board, hanging from the canopy: the time, ticking over
   const board = new THREE.Group();
@@ -287,7 +284,7 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
     },
     {
       id: "station-ticket", stop: "rest", hit: ticketHit, object: ticket, handle: handles.ticket,
-      caption: "My resume",
+      caption: "Open my resume",
       examine: closeUp(V(-0.75, 1.4, -1.15), V(-0.2, 1.33, -1.5)),
       leave: () => ({ position: V(-0.45, 1.36, -1.3), target: V(-0.25, 1.34, -1.5), fov: 26 }),
       panel: () => ({
@@ -369,7 +366,7 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
         if (flicker < 0) flicker = 3 + Math.random() * 6;
         const off = flicker < 0.25 && Math.sin(t * 60) > 0;
         tubeTired.color.copy(tubeColour).multiplyScalar(off ? 0.35 : 2.4);
-        lamps[3].intensity = off ? 1.5 : 8;
+        lamps[1].intensity = off ? 2 : 10;
         // the board ticks over every so often, with a blink as it redraws
         tick += dt;
         if (tick > 24) { tick = 0; minute = (minute + 1) % times.length; }

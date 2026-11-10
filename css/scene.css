@@ -36,6 +36,10 @@ body:not([data-title="1"]) .title-card,
 .chapters a:hover { color: var(--paper); }
 .chapters .chapter.current > a { color: var(--paper); }
 .chapters li ol { margin-top: 4px; font-size: 14px; font-family: var(--sans); }
+/* quieter: only the chapter you're in shows its stops, the rest open on hover or focus */
+.chapters > ol > li:not(.current) ol { display: none; }
+.chapters:is(:hover, :focus-within) > ol > li ol { display: block; }
+.chapters a { text-shadow: 0 1px 2px rgb(0 0 0 / 0.6); }
 .chapters li ol li { margin: 3px 0; }
 .chapters li ol a[aria-current] { color: var(--amber); }
 .chapters > ol > li > a[aria-current] { color: var(--paper); }
@@ -72,8 +76,9 @@ body:not([data-title="1"]) .title-card,
 .artifact-nav ul { list-style: none; margin: 0; padding: 0; }
 .artifact-nav li { margin: 2px 0; }
 .artifact-nav a { display: inline-block; padding: 2px 0; text-decoration: none; position: absolute; left: -9999px; }
-.artifact-nav:focus-within { background: rgb(4 6 5 / 0.8); padding: 10px 14px; margin: -10px -14px; }
-.artifact-nav:focus-within a { position: static; color: var(--paper-dim); }
+/* only for keyboard focus: a mouse user putting something back shouldn't see the list appear */
+.artifact-nav:has(a:focus-visible) { background: rgb(4 6 5 / 0.8); padding: 10px 14px; margin: -10px -14px; }
+.artifact-nav:has(a:focus-visible) a { position: static; color: var(--paper-dim); }
 .artifact-nav a:focus { color: var(--paper); }
 
 /* ---- the note beside whatever you are holding */

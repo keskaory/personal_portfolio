@@ -248,8 +248,8 @@ export function createTrain({ cars = 4 } = {}) {
   g.add(headlight, headlight.target);
 
   // its light on the platform, and its windows in the puddles
-  const spill = [10, 20, 32].map(x => {
-    const l = new THREE.PointLight("#e9f6ef", 7, 7, 1.5);
+  const spill = [12, 26].map(x => {
+    const l = new THREE.PointLight("#e9f6ef", 9, 9, 1.4);
     l.position.set(x, 2.2, -WIDTH / 2 - 1.6);
     g.add(l);
     return l;

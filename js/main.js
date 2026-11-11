@@ -65,7 +65,7 @@ async function main() {
   const quality = pickQuality();
   const canvas = $("#scene-canvas");
   const renderer = createRenderer(canvas, quality);
-  const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.03, 20);
+  const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.03, 140); // far enough to see down the platform into the tunnel
   const environment = createEnvironment(renderer);
 
   // ---- scenes, built on first use

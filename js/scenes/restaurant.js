@@ -120,16 +120,31 @@ function formica() {
   ctx.lineWidth = 1;
   return tex(c);
 }
-function vinyl() {
-  const [c, ctx] = cv(256, 256);
-  const rand = seeded(405);
-  ctx.fillStyle = "#7a2a20";
-  ctx.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 4000; i++) { ctx.fillStyle = `rgba(0,0,0,${rand() * 0.1})`; ctx.fillRect(rand() * 256, rand() * 256, 1, 1); }
-  for (let y = 32; y < 256; y += 64) { ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(0, y, 256, 3); ctx.fillStyle = "rgba(255,200,180,0.1)"; ctx.fillRect(0, y + 3, 256, 2); }
-  ctx.fillStyle = "rgba(190,170,140,0.5)";
-  ctx.fillRect(150, 140, 46, 10); // a split in the seat, taped
-  return tex(c, [2, 1]);
+// buttoned vinyl: a grid of tufts with creases pulling toward them, wear on the high spots
+function tufted() {
+  const [c, ctx] = cv(512, 256);
+  const rand = seeded(407);
+  ctx.fillStyle = "#7d2b21";
+  ctx.fillRect(0, 0, 512, 256);
+  for (let i = 0; i < 5000; i++) { ctx.fillStyle = `rgba(0,0,0,${rand() * 0.08})`; ctx.fillRect(rand() * 512, rand() * 256, 1, 1); }
+  const pts = [];
+  for (let y = 48; y < 256; y += 80) for (let x = 40 + ((y / 80) % 2) * 50; x < 512; x += 100) pts.push([x, y]);
+  pts.forEach(([x, y]) => {
+    const g = ctx.createRadialGradient(x, y, 2, x, y, 46);
+    g.addColorStop(0, "rgba(0,0,0,0.35)"); g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g; ctx.fillRect(x - 46, y - 46, 92, 92);
+    ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.lineWidth = 1.5;
+    for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + 0.78; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * 34, y + Math.sin(a) * 30); ctx.stroke(); }
+    ctx.fillStyle = "#4a1712"; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+  });
+  // worn, paler patches where people sit and lean
+  for (let i = 0; i < 6; i++) {
+    const x = rand() * 512, y = rand() * 256, r = 30 + rand() * 50;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, "rgba(255,210,190,0.12)"); g.addColorStop(1, "rgba(255,210,190,0)");
+    ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  return tex(c, [1, 1]);
 }
 function steamTexture() {
   const [c, ctx] = cv(128, 256);
@@ -156,9 +171,9 @@ function brothTexture() {
   const [c, ctx] = cv(512, 512);
   const rand = seeded(421);
   const g = ctx.createRadialGradient(256, 256, 20, 256, 256, 256);
-  g.addColorStop(0, "#c98d3c");
-  g.addColorStop(0.75, "#a66a26");
-  g.addColorStop(1, "#7a4a18");
+  g.addColorStop(0, "#d99a3e");
+  g.addColorStop(0.7, "#b0701f");
+  g.addColorStop(1, "#7e4812");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 512, 512);
   for (let i = 0; i < 260; i++) {
@@ -261,6 +276,13 @@ function pho() {
     d.position.set(Math.cos(a) * r, 0.067, Math.sin(a) * r);
     d.rotation.set(Math.PI / 2, 0, rand() * 6.28);
   }, onion, { cast: false }));
+  // a few slices of fresh red chilli
+  const chilliRed = new THREE.MeshStandardMaterial({ color: "#d4241a", roughness: 0.28, side: THREE.DoubleSide });
+  g.add(merged(6, () => new THREE.CylinderGeometry(0.0055, 0.0055, 0.0025, 12, 1, true), d => {
+    const a = rand() * 6.28, r = 0.02 + rand() * 0.06;
+    d.position.set(Math.cos(a) * r, 0.069, Math.sin(a) * r);
+    d.rotation.set((rand() - 0.5) * 0.4, 0, (rand() - 0.5) * 0.4);
+  }, chilliRed, { cast: false }));
   // the soup spoon: a flat-bottomed ceramic bowl in the broth, its handle up on the rim
   const spoon = new THREE.Group();
   const cup = new THREE.Mesh(new THREE.SphereGeometry(0.024, 20, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), new THREE.MeshPhysicalMaterial({ color: "#f4f1ea", roughness: 0.22, clearcoat: 0.6, side: THREE.DoubleSide }));
@@ -355,7 +377,7 @@ function sauces() {
   const tip = new THREE.Mesh(new THREE.ConeGeometry(0.006, 0.016, 10), new THREE.MeshStandardMaterial({ color: "#f1efe9", roughness: 0.4 }));
   tip.position.y = 0.203;
   hot.add(cap, tip);
-  hot.position.set(0, 0, -0.04);
+  hot.position.set(0, 0.006, -0.07);
   g.add(hot);
   // squeeze bottles: red chilli and dark hoisin, soft plastic with pointed caps
   const squeeze = (color, z) => {
@@ -365,10 +387,10 @@ function sauces() {
     const c = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.05, 16), mat);
     c.position.y = 0.165;
     b.add(c);
-    b.position.set(0.01, 0, z);
+    b.position.set(0.0, 0.006, z);
     return b;
   };
-  g.add(squeeze("#c22d1e", 0.025), squeeze("#3b2214", 0.08));
+  g.add(squeeze("#c22d1e", -0.005), squeeze("#3b2214", 0.055));
   // chilli oil in a glass jar, a small spoon left in it
   const jar = new THREE.Group();
   const glass = new THREE.MeshStandardMaterial({ color: "#e8f0ee", roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
@@ -380,8 +402,21 @@ function sauces() {
   spoonH.position.set(0.008, 0.06, 0);
   spoonH.rotation.z = -0.25;
   jar.add(shell, oil, spoonH);
-  jar.position.set(0.075, 0, -0.06);
+  jar.position.set(0.045, 0.006, 0.115);
   g.add(jar);
+  // the steel wire caddy they all stand in, with a carrying handle
+  const wire = new THREE.MeshStandardMaterial({ color: "#b8bab6", metalness: 0.9, roughness: 0.3 });
+  const caddy = new THREE.Group();
+  caddy.add(box(0.12, 0.006, 0.27, wire, 0.02, 0.003, 0.02));
+  [[-0.04, -0.115], [0.08, -0.115], [-0.04, 0.155], [0.08, 0.155]].forEach(([x, z]) => caddy.add(box(0.005, 0.07, 0.005, wire, x, 0.035, z)));
+  [-0.04, 0.08].forEach(x => caddy.add(box(0.005, 0.005, 0.27, wire, x, 0.068, 0.02)));
+  [-0.115, 0.155].forEach(z => caddy.add(box(0.12, 0.005, 0.005, wire, 0.02, 0.068, z)));
+  const handleBar = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.003, 6, 24, Math.PI), wire);
+  handleBar.position.set(0.02, 0.07, 0.02);
+  handleBar.rotation.y = Math.PI / 2;
+  handleBar.scale.set(1, 1.6, 1);
+  caddy.add(handleBar);
+  g.add(caddy);
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return g;
 }
@@ -393,59 +428,61 @@ function tableware() {
   const napkins = new THREE.Group();
   napkins.add(box(0.06, 0.1, 0.11, steel, 0, 0.05, 0));
   napkins.add(box(0.035, 0.012, 0.1, new THREE.MeshStandardMaterial({ color: "#f2efe8", roughness: 0.9 }), 0, 0.104, 0));
-  napkins.position.set(0, 0, 0.0);
+  napkins.position.set(0, 0, -0.02);
   g.add(napkins);
   // a steel cup of spare chopsticks and soup spoons
   const holder = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.026, 0.1, 16, 1, true), new THREE.MeshStandardMaterial({ color: "#9a9b98", metalness: 0.8, roughness: 0.35, side: THREE.DoubleSide }));
   holder.position.set(0.01, 0.05, 0.1);
+  holder.material.side = THREE.DoubleSide;
   g.add(holder);
   const sticks = new THREE.MeshStandardMaterial({ color: "#2f8a5c", roughness: 0.35 });
-  g.add(merged(8, () => new THREE.CylinderGeometry(0.0028, 0.004, 0.24, 6), (d, i) => {
-    d.position.set(0.01 + Math.cos(i) * 0.012, 0.12, 0.1 + Math.sin(i) * 0.012);
-    d.rotation.set(Math.sin(i * 3) * 0.14, 0, Math.cos(i * 2) * 0.14);
+  // standing in the cup from the bottom, each leaning a little out against the rim
+  g.add(merged(9, () => { const c = new THREE.CylinderGeometry(0.0026, 0.0038, 0.235, 6); c.translate(0, 0.1175, 0); return c; }, (d, i) => {
+    const a = i * 2.4, r = 0.009 + (i % 3) * 0.004;
+    d.position.set(0.01 + Math.cos(a) * r, 0.004, 0.1 + Math.sin(a) * r);
+    d.rotation.set(Math.sin(a) * 0.09, 0, -Math.cos(a) * 0.09);
   }, sticks));
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return g;
 }
 
-// a tall glass of iced black tea with a straw, sweating
-function condensation() {
+// Hong Kong milk tea: a heavy white cup on its saucer, the tea opaque and tan, a spoon resting
+function milkTeaTexture() {
   const [c, ctx] = cv(256, 256);
-  const rand = seeded(441);
-  for (let i = 0; i < 500; i++) {
-    const x = rand() * 256, y = rand() * 256, r = 0.8 + rand() * 2.6;
-    ctx.fillStyle = `rgba(255,255,255,${0.25 + rand() * 0.5})`;
-    ctx.beginPath(); ctx.ellipse(x, y, r, r * 1.2, 0, 0, Math.PI * 2); ctx.fill();
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(3, 1);
-  return t;
+  const g = ctx.createRadialGradient(128, 128, 10, 128, 128, 128);
+  g.addColorStop(0, "#c49464"); g.addColorStop(0.85, "#b07f50"); g.addColorStop(1, "#8f633a");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 256);
+  // the faint swirl left by stirring, and a little froth at the edge
+  ctx.strokeStyle = "rgba(235,205,170,0.25)"; ctx.lineWidth = 6;
+  for (let r = 30; r < 110; r += 22) { ctx.beginPath(); ctx.arc(128, 128, r, 0.4 + r * 0.02, 2.6 + r * 0.02); ctx.stroke(); }
+  ctx.strokeStyle = "rgba(240,215,185,0.5)"; ctx.lineWidth = 8;
+  ctx.beginPath(); ctx.arc(128, 128, 122, 0, Math.PI * 2); ctx.stroke();
+  return tex(c);
 }
-function icedDrink() {
+function milkTea() {
   const g = new THREE.Group();
-  const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.029, 0.15, 28, 1, true), new THREE.MeshStandardMaterial({
-    color: "#ffffff", roughness: 0.08, transparent: true, opacity: 0.32, alphaMap: condensation(), side: THREE.DoubleSide, depthWrite: false,
-  }));
-  glass.position.y = 0.075;
-  const drink = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.027, 0.115, 24), new THREE.MeshStandardMaterial({ color: "#3a1a0b", roughness: 0.08, transparent: true, opacity: 0.93 }));
-  drink.position.y = 0.06;
-  const ice = new THREE.MeshStandardMaterial({ color: "#e9eef0", roughness: 0.05, transparent: true, opacity: 0.55 });
-  g.add(merged(4, () => new THREE.BoxGeometry(0.02, 0.018, 0.02), (d, i) => {
-    d.position.set(Math.cos(i * 1.7) * 0.012, 0.112 + (i % 2) * 0.008, Math.sin(i * 1.7) * 0.012);
-    d.rotation.set(i * 0.7, i * 1.1, i * 0.4);
-  }, ice, { cast: false }));
-  const straw = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.2, 8), new THREE.MeshStandardMaterial({ color: "#f3f1ec", roughness: 0.4 }));
-  straw.position.set(0.012, 0.12, 0.0);
-  straw.rotation.z = -0.16;
-  const water = new THREE.Mesh(new THREE.RingGeometry(0.029, 0.04, 24), new THREE.MeshBasicMaterial({ color: "#000000", transparent: true, opacity: 0.1, depthWrite: false }));
-  water.rotation.x = -Math.PI / 2;
-  water.position.y = 0.0015;
-  g.add(drink, glass, straw, water);
-  drink.castShadow = straw.castShadow = true;
+  const porcelain = new THREE.MeshPhysicalMaterial({ color: "#f6f4ef", roughness: 0.18, clearcoat: 0.8, clearcoatRoughness: 0.1, side: THREE.DoubleSide });
+  const saucer = new THREE.Mesh(lathe([[0, 0.002], [0.045, 0.002], [0.07, 0.009], [0.078, 0.014], [0.075, 0.015], [0.06, 0.01], [0.03, 0.007], [0, 0.007]], 40), porcelain);
+  const cup = new THREE.Mesh(lathe([[0, 0.008], [0.03, 0.008], [0.032, 0.012], [0.042, 0.04], [0.046, 0.068], [0.048, 0.072], [0.044, 0.072], [0.041, 0.045], [0.03, 0.016], [0, 0.014]], 40), porcelain);
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.017, 0.0045, 8, 20, Math.PI * 1.3), porcelain);
+  handle.position.set(0.054, 0.045, 0);
+  handle.rotation.z = -Math.PI * 0.65;
+  const tea = new THREE.Mesh(new THREE.CircleGeometry(0.0435, 32), new THREE.MeshStandardMaterial({ map: milkTeaTexture(), roughness: 0.22 }));
+  tea.rotation.x = -Math.PI / 2;
+  tea.position.y = 0.062;
+  const steel = new THREE.MeshStandardMaterial({ color: "#c4c6c2", metalness: 0.95, roughness: 0.2 });
+  const spoon = new THREE.Group();
+  const bowlS = new THREE.Mesh(new THREE.SphereGeometry(0.011, 12, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), steel);
+  bowlS.scale.set(1, 0.3, 1.5);
+  const stem = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.002, 0.075), steel);
+  stem.position.set(0, 0.003, 0.05);
+  spoon.add(bowlS, stem);
+  spoon.position.set(-0.03, 0.018, 0.035);
+  spoon.rotation.y = 0.6;
+  [saucer, cup, handle, spoon].forEach(m => { m.castShadow = true; g.add(m); });
+  g.add(tea);
   return g;
 }
-
 // ---------------------------------------------------------------- the kitchen hatch
 // Frosted glass with the kitchen's warm light behind it. The cooks are only
 // shapes: they cross, stop at the stove, bend, move on. Steam rolls up.
@@ -563,11 +600,31 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   scene.add(box(0.93, 0.012, 0.012, trim, -0.55, TABLE_Y - 0.02, 0.325, false));
   scene.add(box(0.93, 0.012, 0.012, trim, -0.55, TABLE_Y - 0.02, -0.325, false));
   scene.add(box(0.06, TABLE_Y - 0.03, 0.06, trim, -0.5, (TABLE_Y - 0.03) / 2, 0));
-  const seatMat = new THREE.MeshStandardMaterial({ map: vinyl(), roughness: 0.38 });
+  const seatMat = new THREE.MeshPhysicalMaterial({ map: tufted(), roughness: 0.42, clearcoat: 0.35, clearcoatRoughness: 0.35 });
+  const piping = new THREE.MeshStandardMaterial({ color: "#5e1d16", roughness: 0.4 });
+  const sag = (g, amt) => { // the middle of a cushion sits lower than its edges
+    const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i); if (y > 0) p.setY(i, y - amt * Math.cos((x / 0.5) * Math.PI / 2) ** 2); }
+    g.computeVertexNormals();
+    return g;
+  };
   [-1, 1].forEach(s => {
     const z = s * 0.66;
-    scene.add(box(1.0, 0.1, 0.46, seatMat, -0.52, 0.45, z));
-    scene.add(box(1.0, 0.55, 0.1, seatMat, -0.52, 0.8, z + s * 0.2));
+    const seat = new THREE.Mesh(sag(new RoundedBoxGeometry(1.0, 0.13, 0.48, 4, 0.045), 0.018), seatMat);
+    seat.position.set(-0.52, 0.46, z);
+    seat.castShadow = seat.receiveShadow = true;
+    const back = new THREE.Mesh(new RoundedBoxGeometry(1.0, 0.58, 0.14, 4, 0.05), seatMat);
+    back.position.set(-0.52, 0.82, z + s * 0.2);
+    back.rotation.x = s * 0.1; // raked back a little
+    back.castShadow = back.receiveShadow = true;
+    scene.add(seat, back);
+    // piping along the front of the seat and the top of the back
+    const pipeSeat = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1.0, 8), piping);
+    pipeSeat.rotation.z = Math.PI / 2;
+    pipeSeat.position.set(-0.52, 0.5, z - s * 0.235);
+    const pipeBack = pipeSeat.clone();
+    pipeBack.position.set(-0.52, 1.11, z + s * 0.17);
+    scene.add(pipeSeat, pipeBack);
     scene.add(box(1.0, 0.4, 0.44, dark, -0.52, 0.2, z));
   });
 
@@ -576,18 +633,19 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   bowl.position.set(-0.6, TABLE_Y, 0.06);
   scene.add(bowl);
   const herbs = herbPlate();
-  herbs.position.set(-0.8, TABLE_Y, 0.21);
+  herbs.position.set(-0.7, TABLE_Y, 0.23);
   herbs.rotation.y = 0.5;
   scene.add(herbs);
   const sauce = sauces();
-  sauce.position.set(-0.92, TABLE_Y, 0.0);
+  sauce.position.set(-0.93, TABLE_Y, -0.02);
   scene.add(sauce);
   const ware = tableware();
-  ware.position.set(-0.93, TABLE_Y, 0.16);
+  ware.position.set(-0.95, TABLE_Y, 0.16);
   scene.add(ware);
-  const drink = icedDrink();
-  drink.position.set(-0.4, TABLE_Y, -0.2);
-  scene.add(drink);
+  const tea = milkTea();
+  tea.position.set(-0.36, TABLE_Y, -0.2);
+  tea.rotation.y = -0.5;
+  scene.add(tea);
   // the little dish of scallion oil
   const dish = new THREE.Group();
   dish.add(new THREE.Mesh(lathe([[0, 0.002], [0.03, 0.002], [0.04, 0.018], [0.037, 0.019], [0.028, 0.006], [0, 0.005]], 28), new THREE.MeshPhysicalMaterial({ color: "#f3f0e8", roughness: 0.25, clearcoat: 0.5 })));
@@ -598,7 +656,7 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   oilTop.rotation.x = -Math.PI / 2;
   oilTop.position.y = 0.012;
   dish.add(oilTop);
-  dish.position.set(-0.53, TABLE_Y, -0.23);
+  dish.position.set(-0.55, TABLE_Y, -0.22);
   dish.traverse(o => { if (o.isMesh) o.castShadow = true; });
   scene.add(dish);
   // steam lifting off the bowl
@@ -615,13 +673,17 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   const lean = 0.13;
   const standing = pose(-0.958, TABLE_Y + 0.15, -0.2, Math.PI / 2 - lean, Math.PI / 2, 0);
   standing.rotation.order = "YXZ";
+  // held up in front of you, facing you, tipped back a little as a menu is when you read it
+  const tilt = 0.16;
+  const heldBasis = new THREE.Matrix4().makeBasis(V(0, 0, -1), V(Math.cos(tilt), Math.sin(tilt), 0), V(Math.sin(tilt), -Math.cos(tilt), 0));
+  const held = { position: V(-0.3, 1.1, 0.0), rotation: new THREE.Euler().setFromRotationMatrix(heldBasis) };
   const menuHandle = makeHandle(menu.group, {
     home: standing,
-    held: pose(-0.31, TABLE_Y + 0.001, 0.0, 0, 0, 0),
-    lift: 0.06,
-    duration: 1.1,
-    // the binder opens on its way down to the table
-    extra: k => menu.setOpen(k > 0.6),
+    held,
+    lift: 0.08, // up and over the bowl, never through it
+    duration: 1.2,
+    // it opens as it reaches you
+    extra: k => menu.setOpen(k > 0.72),
   });
   menu.hits[0].userData.id = "magazine";
   menu.left.userData.id = "magazine:prev";
@@ -699,15 +761,16 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   scene.add(attention, attention.target);
 
   // ---- the menu is the one thing to pick up here
+  // reading: you, the menu in front of you, the table soft behind it
   const readShot = portrait => portrait
-    ? { side: "reader", position: V(-0.31, TABLE_Y + 0.86, 0.2), target: V(-0.31, TABLE_Y, 0.06), fov: 62 }
-    : { side: "reader", position: V(-0.31, TABLE_Y + 0.58, 0.28), target: V(-0.31, TABLE_Y, 0.05), fov: 40 };
+    ? { side: "reader", position: V(0.62, 1.08, 0.0), target: V(-0.3, 1.06, 0.0), fov: 62 }
+    : { side: "reader", position: V(0.5, 1.1, 0.0), target: V(-0.3, 1.075, 0.0), fov: 38 };
   const menuArtifact = {
     id: "magazine", stop: "rest", hits: [menu.hits[0]], object: menu.group, handle: menuHandle,
     caption: "Open the menu",
     reader: menu,
     examine: readShot,
-    leave: () => ({ position: V(-0.45, TABLE_Y + 0.34, 0.1), target: V(-0.6, TABLE_Y + 0.1, -0.05), fov: 38 }),
+    leave: () => ({ position: V(0.2, 1.15, 0.12), target: V(-0.7, 0.98, -0.14), fov: 40 }),
     onExamine: () => {},
     release: () => {},
     panel: () => ({}),
@@ -715,7 +778,7 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   const artifacts = [menuArtifact];
   artifacts.forEach(a => { a.focus = new THREE.Vector3(); });
 
-  let carT = 4, buzz = 0;
+  let carT = 4, buzz = 0, hoverTip = 0;
   const restFocusPoint = V(-0.6, TABLE_Y + 0.06, 0.0);
   return {
     artifacts,
@@ -731,8 +794,11 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
     restFocus: () => restFocusPoint,
     dof: { rest: 0.012, examine: 0.03 },
     lights: { attention },
-    update(t, dt, held) {
+    update(t, dt, held, hovered) {
       menuHandle.update(dt, held === menuArtifact, reducedMotion);
+      // pointed at, it tips forward out of its place, as if about to be taken
+      hoverTip += ((hovered === menuArtifact && menuHandle.progress === 0 ? 1 : 0) - hoverTip) * Math.min(1, dt * 7);
+      menu.tip.rotation.x = hoverTip * 0.16;
       menu.group.updateMatrixWorld();
       menuArtifact.focus.setFromMatrixPosition(menu.group.matrixWorld);
       menu.update(dt);

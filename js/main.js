@@ -58,7 +58,7 @@ async function main() {
   if (!webglAvailable()) return showFallback();
 
   await Promise.race([
-    Promise.all([document.fonts.load('46px "Courier Prime"'), document.fonts.ready]),
+    Promise.all([document.fonts.load('46px "Courier Prime"'), document.fonts.load('600 40px "Barlow Condensed"'), document.fonts.load('700 40px "Barlow Condensed"'), document.fonts.ready]),
     new Promise(r => setTimeout(r, 2500)),
   ]).catch(() => {});
 

@@ -19,11 +19,11 @@ const INK = "#1d1a17", SOFT = "#615a50", CARD = "#f3eddf", RED = "#b3261e", SLEE
 const M = 74; // page margin
 
 // ---------------------------------------------------------------- typesetting
-// Set the way a Hong Kong café menu is set: a red band across the top of each
-// page, condensed bold headings, numbered entries (A for projects, B for
-// experience), plain serif for anything you read in sentences.
+// Inside the menu the pages are set for reading at a glance: a small red kicker,
+// a large condensed heading, then each entry as name, one line, the result that
+// matters, and the tools. The menu is the object; the pages are the portfolio.
 const COND = '"Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif';
-function page(band) {
+function page() {
   const c = document.createElement("canvas");
   c.width = TW; c.height = TH;
   const ctx = c.getContext("2d");
@@ -32,31 +32,11 @@ function page(band) {
   ctx.fillStyle = CARD;
   ctx.fillRect(16, 16, TW - 32, TH - 32);
   for (let i = 0; i < 4000; i++) {
-    ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.02})`;
+    ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.018})`;
     ctx.fillRect(16 + Math.random() * (TW - 32), 16 + Math.random() * (TH - 32), 1.5, 1.5);
-  }
-  if (band) {
-    ctx.fillStyle = RED;
-    ctx.fillRect(16, 16, TW - 32, 118);
-    ctx.fillStyle = "#fbf4e6";
-    ctx.font = `700 50px ${COND}`;
-    ctx.letterSpacing = "3px";
-    if (band.code) {
-      ctx.fillText(band.code, M, 96);
-      ctx.font = `600 50px ${COND}`;
-      ctx.fillText(band.label.toUpperCase(), M + ctx.measureText(band.code).width + 26, 96);
-    } else ctx.fillText(band.label.toUpperCase(), M, 96);
-    ctx.letterSpacing = "0px";
-    if (band.right) {
-      ctx.font = `500 30px ${COND}`;
-      const w = ctx.measureText(band.right).width;
-      ctx.fillText(band.right, TW - M - w, 92);
-    }
   }
   return [c, ctx];
 }
-
-// wrapped text; returns the y after the last line
 function text(ctx, str, x, y, maxW, { size = 30, lead = 1.4, font = SERIF, color = INK, weight = 400, style = "", maxLines = 99 } = {}) {
   ctx.font = `${style} ${weight} ${size}px ${font}`;
   ctx.fillStyle = color;
@@ -74,44 +54,52 @@ function text(ctx, str, x, y, maxW, { size = 30, lead = 1.4, font = SERIF, color
   if (line) { ctx.fillText(line, x, y); y += size * lead; }
   return y;
 }
-// a small red heading inside a page
-function sub(ctx, label, y) {
-  ctx.font = `700 28px ${COND}`;
+// the kicker and heading at the top of a page
+function head(ctx, kicker, title, y = 128) {
+  ctx.font = `700 24px ${COND}`;
+  ctx.letterSpacing = "4px";
+  ctx.fillStyle = RED;
+  ctx.fillText(kicker.toUpperCase(), M, y);
+  ctx.letterSpacing = "0px";
+  y = text(ctx, title, M, y + 74, TW - M * 2, { size: 72, lead: 0.98, font: COND, weight: 600, maxLines: 3 });
+  ctx.fillStyle = "rgba(29,26,23,0.85)";
+  ctx.fillRect(M, y - 26, TW - M * 2, 3);
+  return y + 24;
+}
+function label(ctx, s, y) {
+  ctx.font = `700 22px ${COND}`;
   ctx.letterSpacing = "3px";
-  ctx.fillStyle = RED;
-  ctx.fillText(label.toUpperCase(), M, y);
-  ctx.letterSpacing = "0px";
-  return y + 44;
-}
-function dots(ctx, y) {
-  ctx.fillStyle = "rgba(29,26,23,0.28)";
-  for (let x = M; x < TW - M; x += 12) ctx.fillRect(x, y, 4, 2);
-}
-// one entry in the list: its code, the name, a line of detail, one sentence
-function item(ctx, code, title, detail, sub, y) {
-  const x = M + 96, w = TW - M - x;
-  ctx.font = `700 46px ${COND}`;
-  ctx.fillStyle = RED;
-  ctx.fillText(code, M, y + 4);
-  y = text(ctx, title, x, y + 4, w, { size: 46, lead: 1.05, font: COND, weight: 600, maxLines: 2 }) - 4;
-  if (detail) y = text(ctx, detail.toUpperCase(), x, y + 6, w, { size: 25, lead: 1.25, font: COND, weight: 500, color: SOFT, maxLines: 2 }) + 6;
-  y = text(ctx, sub, x, y + 6, w, { size: 28, lead: 1.35, color: INK, maxLines: 2 }) + 18;
-  dots(ctx, y - 6);
-  return y + 30;
-}
-function folio(ctx, n, label) {
-  ctx.font = `500 24px ${COND}`;
-  ctx.letterSpacing = "2px";
   ctx.fillStyle = SOFT;
-  const s = [label, n].filter(Boolean).join("   ").toUpperCase();
-  ctx.fillText(s, (TW - ctx.measureText(s).width) / 2, TH - 60);
+  ctx.fillText(s.toUpperCase(), M, y);
   ctx.letterSpacing = "0px";
+  return y + 38;
+}
+// one entry in a list: number, name, a line, the result that matters, the tools
+function entry(ctx, n, title, line, result, meta, y) {
+  const x = M + 64, w = TW - M - x;
+  ctx.font = `600 30px ${COND}`;
+  ctx.fillStyle = "rgba(29,26,23,0.4)";
+  ctx.fillText(String(n).padStart(2, "0"), M, y);
+  y = text(ctx, title, x, y, w, { size: 46, lead: 1.02, font: COND, weight: 600, maxLines: 2 }) + 2;
+  y = text(ctx, line, x, y, w, { size: 27, lead: 1.32, maxLines: 2 }) + 4;
+  if (result) y = text(ctx, result, x, y, w, { size: 28, lead: 1.2, font: COND, weight: 600, color: RED, maxLines: 1 }) + 2;
+  if (meta) y = text(ctx, meta.toUpperCase(), x, y, w, { size: 22, lead: 1.2, font: COND, weight: 500, color: SOFT, maxLines: 1 });
+  ctx.fillStyle = "rgba(29,26,23,0.14)";
+  ctx.fillRect(x, y + 6, w, 2);
+  return y + 46;
+}
+function folio(ctx, n) {
+  if (n === "" || n === undefined) return;
+  ctx.font = `500 24px ${COND}`;
+  ctx.fillStyle = SOFT;
+  const s = String(n);
+  ctx.fillText(s, (TW - ctx.measureText(s).width) / 2, TH - 58);
 }
 function sampleMark(ctx, x, y) {
   ctx.save();
   ctx.font = `700 22px ${COND}`;
   ctx.letterSpacing = "3px";
-  ctx.fillStyle = "rgba(179,38,30,0.85)";
+  ctx.fillStyle = "rgba(179,38,30,0.8)";
   ctx.fillText("SAMPLE", x, y);
   ctx.restore();
 }
@@ -126,7 +114,8 @@ function image(ctx, preview, seed, x, y, w, h, sample) {
     img.src = preview.image;
   }
 }
-const tools = p => [(p.stack || []).slice(0, 3).join(" · "), p.year].filter(Boolean).join("   ");
+const firstResult = p => (p.results && p.results[0] ? `${p.results[0].value}  ${p.results[0].label}` : "");
+const tools = p => [(p.stack || []).slice(0, 4).join(" · "), p.year].filter(Boolean).join("   ");
 
 // ------------------------------------------------------------------ the pages
 function coverPage({ site }) {
@@ -167,93 +156,90 @@ function coverPage({ site }) {
   return c;
 }
 
-// the first spread: everything at a glance
+// the first spread: all the work at a glance
 function listPages({ projects, experience }, proj, exp) {
-  const [l, lc] = page({ code: "A", label: "Projects" });
-  let y = 220;
-  proj.forEach(s => { y = item(lc, `A${s.index}`, s.entry.title, tools(s.entry), s.entry.summary, y); });
-  if (projects.some(p => p.sample)) sampleMark(lc, M, TH - 104);
+  const [l, lc] = page();
+  let y = head(lc, "Selected work", "Projects");
+  proj.forEach(s => { y = entry(lc, s.index, s.entry.title, s.entry.summary, firstResult(s.entry), tools(s.entry), y); });
+  if (projects.some(p => p.sample)) sampleMark(lc, M, TH - 100);
   folio(lc, 1);
-  const [r, rc] = page({ code: "B", label: "Experience" });
-  y = 220;
-  exp.forEach(s => { y = item(rc, `B${s.index}`, s.entry.organization, [s.entry.role, s.entry.dates].filter(Boolean).join("   "), s.entry.summary, y); });
-  y += 10;
-  y = sub(rc, "C  Resume", y);
-  text(rc, "On the last page, with how to reach me.", M, y, TW - M * 2, { size: 28, color: SOFT, style: "italic" });
-  if (experience.some(e => e.sample)) sampleMark(rc, M, TH - 104);
+  const [r, rc] = page();
+  y = head(rc, "Selected work", "Experience");
+  exp.forEach(s => { y = entry(rc, s.index, s.entry.organization, s.entry.summary, "", [s.entry.role, s.entry.dates].filter(Boolean).join("  ·  "), y); });
+  y += 6;
+  y = label(rc, "Resume and contact", y);
+  text(rc, "On the last page.", M, y, TW - M * 2, { size: 28, color: SOFT, style: "italic" });
+  if (experience.some(e => e.sample)) sampleMark(rc, M, TH - 100);
   folio(rc, 2);
   return [l, r];
 }
 
 function projectPages(p, n, pageNo) {
-  const [l, lc] = page({ code: `A${n}`, label: "Project", right: p.year || "" });
-  let y = 230;
-  y = text(lc, p.title, M, y, TW - M * 2, { size: 78, lead: 1.0, font: COND, weight: 600, maxLines: 3 }) + 10;
-  y = text(lc, p.summary, M, y, TW - M * 2, { size: 34, style: "italic", color: SOFT, maxLines: 3 }) + 26;
-  const ih = Math.min(TH - y - 190, (TW - M * 2) * 0.72);
-  image(lc, p.preview || { format: "chart" }, hashString(p.id), M, y, TW - M * 2, ih, p.sample);
-  text(lc, p.preview?.caption || "", M, y + ih + 44, TW - M * 2, { size: 26, color: SOFT, maxLines: 2 });
-  if (p.sample) sampleMark(lc, TW - M - 110, 230);
-  folio(lc, pageNo, "Projects");
-  const [r, rc] = page({ label: "About it" });
-  y = 230;
-  y = text(rc, p.description, M, y, TW - M * 2, { size: 34, lead: 1.46, maxLines: 9 }) + 30;
+  const [l, lc] = page();
+  let y = head(lc, `Project ${String(n).padStart(2, "0")}${p.year ? `  ·  ${p.year}` : ""}`, p.title);
+  y = text(lc, p.summary, M, y, TW - M * 2, { size: 34, style: "italic", color: SOFT, lead: 1.32, maxLines: 3 }) + 30;
   if (p.results && p.results.length) {
-    y = sub(rc, "Results", y);
-    p.results.slice(0, 3).forEach(res => {
-      rc.font = `700 60px ${COND}`;
-      rc.fillStyle = INK;
-      rc.fillText(String(res.value), M, y + 12);
-      y = text(rc, res.label, M + 200, y - 8, TW - M * 2 - 200, { size: 27, color: SOFT, maxLines: 2 }) + 30;
+    y = label(lc, "Results", y);
+    const cols = Math.min(2, p.results.length), cw = (TW - M * 2) / cols;
+    p.results.slice(0, 2).forEach((res, i) => {
+      const x = M + i * cw;
+      lc.font = `700 78px ${COND}`;
+      lc.fillStyle = RED;
+      lc.fillText(String(res.value), x, y + 52);
+      text(lc, res.label, x, y + 96, cw - 30, { size: 25, color: SOFT, lead: 1.3, maxLines: 3 });
     });
-    y += 6;
+    y += 220;
   }
   if (p.stack && p.stack.length) {
-    y = sub(rc, "Made with", y);
-    text(rc, p.stack.join("  ·  "), M, y, TW - M * 2, { size: 38, font: COND, weight: 500, maxLines: 3 });
+    y = label(lc, "Tools", y);
+    text(lc, p.stack.join("  ·  "), M, y, TW - M * 2, { size: 36, font: COND, weight: 500, maxLines: 3 });
   }
-  folio(rc, pageNo + 1, "Projects");
+  if (p.sample) sampleMark(lc, TW - M - 110, 128);
+  folio(lc, pageNo);
+  const [r, rc] = page();
+  y = 104;
+  const ih = (TW - M * 2) * 0.66;
+  image(rc, p.preview || { format: "chart" }, hashString(p.id), M, y, TW - M * 2, ih, p.sample);
+  y = text(rc, p.preview?.caption || "", M, y + ih + 40, TW - M * 2, { size: 24, color: SOFT, maxLines: 2 }) + 26;
+  y = label(rc, "About it", y);
+  text(rc, p.description, M, y, TW - M * 2, { size: 31, lead: 1.46, maxLines: 9 });
+  folio(rc, pageNo + 1);
   return [l, r];
 }
 
 function experiencePages(e, n, pageNo) {
-  const [l, lc] = page({ code: `B${n}`, label: "Experience", right: e.dates || "" });
-  let y = 230;
-  y = text(lc, e.organization, M, y, TW - M * 2, { size: 76, lead: 1.0, font: COND, weight: 600, maxLines: 3 }) + 8;
-  y = text(lc, [e.role, e.location].filter(Boolean).join("  ·  "), M, y, TW - M * 2, { size: 34, font: COND, weight: 500, color: SOFT, maxLines: 2 }) + 26;
-  y = text(lc, e.summary, M, y, TW - M * 2, { size: 34, style: "italic", lead: 1.35, maxLines: 5 }) + 30;
+  const [l, lc] = page();
+  let y = head(lc, `Experience ${String(n).padStart(2, "0")}`, e.organization);
+  y = text(lc, [e.role, e.dates, e.location].filter(Boolean).join("  ·  "), M, y, TW - M * 2, { size: 32, font: COND, weight: 500, color: SOFT, maxLines: 2 }) + 18;
+  y = text(lc, e.summary, M, y, TW - M * 2, { size: 34, style: "italic", lead: 1.34, maxLines: 5 }) + 30;
   if (e.responsibilities && e.responsibilities.length) {
-    y = sub(lc, "Responsibilities", y);
-    e.responsibilities.slice(0, 5).forEach(r => { y = text(lc, `– ${r}`, M, y, TW - M * 2, { size: 29, lead: 1.4, maxLines: 3 }) + 8; });
+    y = label(lc, "Responsibilities", y);
+    e.responsibilities.slice(0, 5).forEach(r => { y = text(lc, `– ${r}`, M, y, TW - M * 2, { size: 28, lead: 1.4, maxLines: 3 }) + 8; });
   }
-  if (e.sample) sampleMark(lc, TW - M - 110, 230);
-  folio(lc, pageNo, "Experience");
-  const [r, rc] = page({ label: "What I did" });
-  y = 230;
-  if (e.contributions && e.contributions.length) {
-    e.contributions.slice(0, 6).forEach(x => { y = text(rc, x, M, y, TW - M * 2, { size: 31, lead: 1.42, maxLines: 4 }) + 20; });
-  }
+  if (e.sample) sampleMark(lc, TW - M - 110, 128);
+  folio(lc, pageNo);
+  const [r, rc] = page();
+  y = head(rc, "Experience", "What I did");
+  (e.contributions || []).slice(0, 6).forEach(x => { y = text(rc, x, M, y, TW - M * 2, { size: 30, lead: 1.42, maxLines: 4 }) + 18; });
   (e.caseStudy?.sections || []).slice(0, 2).forEach(s => {
     y += 6;
-    y = sub(rc, s.heading, y);
-    y = text(rc, s.body, M, y, TW - M * 2, { size: 28, lead: 1.46, maxLines: 5 }) + 12;
+    y = label(rc, s.heading, y);
+    y = text(rc, s.body, M, y, TW - M * 2, { size: 27, lead: 1.46, maxLines: 5 }) + 12;
   });
-  folio(rc, pageNo + 1, "Experience");
+  folio(rc, pageNo + 1);
   return [l, r];
 }
 
 function closingPages({ site }) {
   const { links } = site;
-  const [l, lc] = page({ code: "C", label: "Resume" });
-  let y = 240;
-  y = text(lc, linkOr(links.resume, "") ? "The full resume opens from the link under the menu." : "The resume PDF isn't linked yet.", M, y, TW - M * 2, { size: 34, style: "italic", color: SOFT });
-  folio(lc, "");
-  const [r, rc] = page({ label: "Contact" });
-  y = 240;
+  const [l, lc] = page();
+  let y = head(lc, "Resume", "The full resume");
+  text(lc, linkOr(links.resume, "") ? "Open it from the link under the menu." : "The resume PDF isn't linked yet.", M, y, TW - M * 2, { size: 34, style: "italic", color: SOFT });
+  const [r, rc] = page();
+  y = head(rc, "Contact", "Write to me");
   const lines = [links.email, links.linkedin && "LinkedIn", links.github && "GitHub"].filter(Boolean);
   if (lines.length) lines.forEach(t => { y = text(rc, t, M, y, TW - M * 2, { size: 44, font: COND, weight: 600 }) + 6; });
   else text(rc, "Contact details aren't added yet.", M, y, TW - M * 2, { size: 34, style: "italic", color: SOFT });
-  folio(rc, "");
   return [l, r];
 }
 
@@ -265,7 +251,7 @@ export function buildSpreads(content) {
   const proj = projects.map((p, i) => { const s = { section: "Projects", title: p.title, entry: p, kind: "project", pageNo, index: i + 1 }; pageNo += 2; return s; });
   const exp = experience.map((e, i) => { const s = { section: "Experience", title: e.organization, entry: e, kind: "experience", pageNo, index: i + 1 }; pageNo += 2; return s; });
   spreads.push({
-    section: "Menu", title: "Projects and experience", pages: listPages(content, proj, exp), actions: [],
+    section: "Selected work", title: "Projects and experience", pages: listPages(content, proj, exp), actions: [],
     readable: `Projects: ${projects.map(p => `${p.title}, ${p.summary}`).join("; ")}. Experience: ${experience.map(e => `${e.organization}, ${e.role}, ${e.dates}`).join("; ")}.`,
   });
   proj.forEach(s => {

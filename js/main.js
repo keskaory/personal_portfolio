@@ -308,8 +308,8 @@ async function main() {
       document.body.classList.add("reading");
       interaction.setHits([a.reader.left, a.reader.right]);
       if (instant) { rig.set(shot); reader.open(a.reader); return; }
-      rig.go(shot, 1.5);
-      setTimeout(() => { if (selected === a && mode === "examine") reader.open(a.reader); }, reduced ? 0 : 800);
+      rig.go(shot, 1.8); // a little slower, so the camera follows the menu up rather than jumping to it
+      setTimeout(() => { if (selected === a && mode === "examine") reader.open(a.reader); }, reduced ? 0 : 1150);
       return;
     }
     $("#examine").dataset.side = shot.side || "right";

@@ -841,7 +841,7 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   const artifacts = [menuArtifact];
   artifacts.forEach(a => { a.focus = new THREE.Vector3(); });
 
-  let carT = 4, buzz = 0, hoverTip = 0;
+  let carT = 4, hoverTip = 0;
   const restFocusPoint = V(-0.6, TABLE_Y + 0.06, 0.0);
   return {
     artifacts,
@@ -885,9 +885,8 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
         const k = carT < 1.4 ? 1 - carT / 1.4 : -1;
         car.intensity = k >= 0 ? Math.sin(k * Math.PI) * 14 : 0;
         if (k >= 0) car.target.position.set(1.6 - k * 2.6, 1.3, -1.2);
-        // the red sign has an old transformer: a faint hum in its light
-        buzz += dt;
-        neonRed.intensity = 9 * (0.93 + Math.sin(t * 2.1) * 0.03 + (Math.sin(buzz * 47) > 0.985 ? -0.25 : 0));
+        // the red sign outside breathes a little, slowly; no sudden dips (they read as a glitch)
+        neonRed.intensity = 9 * (0.94 + Math.sin(t * 0.9) * 0.03 + Math.sin(t * 2.3) * 0.015);
       }
     },
   };

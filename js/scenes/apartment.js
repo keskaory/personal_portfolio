@@ -131,6 +131,9 @@ function tatamiTexture() {
     const g = ctx.createRadialGradient(256, 512, 60, 256, 512, 600);
     g.addColorStop(0, "rgba(255,250,220,0.06)"); g.addColorStop(1, "rgba(60,50,20,0.12)");
     ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 1024);
+    // the dark cloth edging (heri) along the long sides, part of the mat itself
+    ctx.fillStyle = "#262a26"; ctx.fillRect(0, 0, 18, 1024); ctx.fillRect(494, 0, 18, 1024);
+    ctx.fillStyle = "rgba(255,255,255,0.05)"; ctx.fillRect(4, 0, 2, 1024); ctx.fillRect(506, 0, 2, 1024);
   });
 }
 // plain woven fabric: one colour, a faint weave, no print
@@ -562,12 +565,13 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   const tatamiMat = new THREE.MeshStandardMaterial({ map: tatamiTexture(), color: "#c4c4c4", roughness: 0.88 });
   const heri = new THREE.MeshStandardMaterial({ map: weaveTexture("#262a26", 517), roughness: 0.8 });
   const tatamiSide = new THREE.MeshStandardMaterial({ color: "#8f8763", roughness: 0.9 });
-  [-0.85, 0.05].forEach((x, i) => {
-    const mat = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.045, 1.8), [tatamiSide, tatamiSide, tatamiMat, tatamiSide, tatamiSide, tatamiSide]);
-    mat.position.set(x, 0.0225, -0.35 + i * 0.02);
+  // one solid piece per mat: the edging is in its top texture and on its long sides, so no
+  // separate border pieces share a face with it (that was the flickering edge)
+  [-0.852, 0.052].forEach((x, i) => { // a 4 mm seam between them, as between real mats
+    const mat = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.045, 1.8), [heri, heri, tatamiMat, tatamiSide, tatamiSide, tatamiSide]);
+    mat.position.set(x, 0.0225 + i * 0.0004, -0.35 + i * 0.02);
     mat.receiveShadow = true;
     scene.add(mat);
-    [-1, 1].forEach(s2 => scene.add(box(0.03, 0.047, 1.8, heri, x + s2 * 0.435, 0.0225, -0.35 + i * 0.02, false))); // the cloth borders along the long sides
   });
   const MAT_Y = 0.045; // things on the tatami sit this high
   const tableWood = new THREE.MeshStandardMaterial({ map: woodTexture(533), roughness: 0.45 });

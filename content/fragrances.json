@@ -1,18 +1,33 @@
 {
-  "_note": "Your three bottles. Names and where they came from are yours; sizes, notes, memory and wear are still placeholders to fill in. 'size' is 15, 50 or 100 (ml) and sets the bottle's proportions. 'tint' is the liquid color. 'label' is the typed label, one line each, set like Le Labo's.",
+  "_note": "Your three Le Labo bottles. Names, sizes and where they came from are yours; the scent notes, memory and wear are still placeholders. 'tint' is the liquid's colour. 'label' is what the typed label says.",
   "fragrances": [
     {
       "id": "fragrance-01",
       "name": "Baie 19",
-      "label": [
-        "baie 19",
-        "eau de parfum",
-        "compounded: [ city ]",
-        "fresh: [ date ]"
-      ],
+      "label": {
+        "name": "Baie 19",
+        "lines": [
+          "eau de parfum",
+          "natural spray / vaporisateur"
+        ],
+        "fields": [
+          [
+            "Labelled:",
+            "in your city"
+          ],
+          [
+            "On:",
+            "date of preparation"
+          ],
+          [
+            "For:",
+            "your name here"
+          ]
+        ]
+      },
       "size": 100,
-      "tint": "#e9d9a6",
-      "fill": 0.78,
+      "tint": "#eef0ea",
+      "fill": 0.85,
       "short": "One line about this scent goes here.",
       "notes": "Placeholder: what you smell first, and what stays.",
       "memory": "Placeholder: a place, a person, or a season it brings back.",
@@ -23,15 +38,26 @@
     {
       "id": "fragrance-02",
       "name": "Another 13",
-      "label": [
-        "another 13",
-        "50ml e / 1.7 fl.oz.liq.",
-        "eau de parfum",
-        "compounded: new york"
-      ],
+      "label": {
+        "name": "Another 13",
+        "lines": [
+          "eau de parfum",
+          "natural spray / vaporisateur"
+        ],
+        "fields": [
+          [
+            "Compounded:",
+            "in our lab"
+          ],
+          [
+            "Fresh:",
+            "12 months after first spray"
+          ]
+        ]
+      },
       "size": 50,
-      "tint": "#f1e8cf",
-      "fill": 0.55,
+      "tint": "#f1f1ec",
+      "fill": 0.8,
       "short": "One line about this scent goes here.",
       "notes": "Placeholder: what you smell first, and what stays.",
       "memory": "Placeholder: a place, a person, or a season it brings back.",
@@ -41,16 +67,27 @@
     },
     {
       "id": "fragrance-03",
-      "name": "Matcha 26",
-      "label": [
-        "matcha 26",
-        "eau de parfum",
-        "compounded: osaka",
-        "fresh: [ date ]"
-      ],
-      "size": 15,
-      "tint": "#dcc58e",
-      "fill": 0.9,
+      "name": "Thé Matcha 26",
+      "label": {
+        "name": "Thé Matcha 26",
+        "lines": [
+          "eau de parfum",
+          "natural spray / vaporisateur"
+        ],
+        "fields": [
+          [
+            "Compounded:",
+            "in our lab"
+          ],
+          [
+            "Fresh:",
+            "12 months after first spray"
+          ]
+        ]
+      },
+      "size": 50,
+      "tint": "#dfe3b8",
+      "fill": 0.82,
       "short": "One line about this scent goes here.",
       "notes": "Placeholder: what you smell first, and what stays.",
       "memory": "Placeholder: a place, a person, or a season it brings back.",

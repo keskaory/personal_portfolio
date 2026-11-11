@@ -43,22 +43,6 @@ function canvasTex(w, h, draw, { srgb = true } = {}) {
 const loader = new THREE.TextureLoader();
 
 // ---------------------------------------------------------------- textures
-// a worn wool rug: a red field, a navy border, a repeating medallion
-function rugTexture() {
-  return canvasTex(512, 384, ctx => {
-    const rand = seeded(501);
-    ctx.fillStyle = "#6e2a24"; ctx.fillRect(0, 0, 512, 384);
-    ctx.fillStyle = "#26304a"; ctx.fillRect(0, 0, 512, 46); ctx.fillRect(0, 338, 512, 46); ctx.fillRect(0, 0, 46, 384); ctx.fillRect(466, 0, 46, 384);
-    ctx.strokeStyle = "#c9a46a"; ctx.lineWidth = 3; ctx.strokeRect(50, 50, 412, 284);
-    for (let y = 78; y < 330; y += 64) for (let x = 82; x < 450; x += 64) {
-      ctx.fillStyle = (x + y) % 128 ? "#a8452f" : "#2f3f5c";
-      ctx.beginPath(); ctx.moveTo(x, y - 22); ctx.lineTo(x + 22, y); ctx.lineTo(x, y + 22); ctx.lineTo(x - 22, y); ctx.fill();
-      ctx.fillStyle = "#d8b98a"; ctx.fillRect(x - 3, y - 3, 6, 6);
-    }
-    for (let x = 6; x < 506; x += 14) { ctx.fillStyle = "#c9a46a"; ctx.fillRect(x, 18, 6, 10); ctx.fillRect(x, 356, 6, 10); }
-    for (let i = 0; i < 12000; i++) { ctx.fillStyle = `rgba(${rand() < 0.5 ? "0,0,0" : "255,230,210"},${rand() * 0.07})`; ctx.fillRect(rand() * 512, rand() * 384, 2, 1); }
-  });
-}
 // the Molten match ball: white with a green and a red swoosh in each of three panels (no logo)
 function volleyballTexture() {
   return canvasTex(1024, 512, ctx => {
@@ -132,45 +116,24 @@ function coverTexture(item, colour, seed) {
   if (item && item.cover) loader.load(item.cover, img => { t.image = img.image; t.needsUpdate = true; });
   return t;
 }
-// curtain fabric: a faded rust weave with a small, quiet print
-function curtainTexture() {
+// tatami: a fine straw weave running the length of the mat, faintly green-gold, aged
+function tatamiTexture() {
   return canvasTex(256, 512, ctx => {
-    const rand = seeded(511);
-    ctx.fillStyle = "#6b3428"; ctx.fillRect(0, 0, 256, 512);
-    for (let y = 0; y < 512; y += 26) for (let x = (y / 26) % 2 * 13; x < 256; x += 26) {
-      ctx.fillStyle = rand() < 0.5 ? "rgba(70,90,80,0.55)" : "rgba(190,140,90,0.45)";
-      ctx.beginPath(); ctx.ellipse(x, y, 4, 6, rand(), 0, Math.PI * 2); ctx.fill();
-    }
-    for (let x = 0; x < 256; x += 3) { ctx.fillStyle = `rgba(0,0,0,${0.04 + rand() * 0.05})`; ctx.fillRect(x, 0, 1, 512); }
-    for (let i = 0; i < 6000; i++) { ctx.fillStyle = `rgba(0,0,0,${rand() * 0.08})`; ctx.fillRect(rand() * 256, rand() * 512, 2, 2); }
+    const rand = seeded(521);
+    ctx.fillStyle = "#958d68"; ctx.fillRect(0, 0, 256, 512);
+    for (let x = 0; x < 256; x += 2) { ctx.fillStyle = `rgba(${rand() < 0.5 ? "70,66,40" : "235,228,190"},${0.08 + rand() * 0.12})`; ctx.fillRect(x, 0, 1, 512); }
+    for (let y = 0; y < 512; y += 22) { ctx.fillStyle = "rgba(60,55,30,0.18)"; ctx.fillRect(0, y, 256, 1); } // the cross-stitching
+    const g = ctx.createRadialGradient(128, 256, 30, 128, 256, 300);
+    g.addColorStop(0, "rgba(255,250,220,0.08)"); g.addColorStop(1, "rgba(60,50,20,0.12)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 512);
   });
 }
-// a navy and cream plaid for the duvet
-function plaidTexture() {
-  return canvasTex(512, 512, ctx => {
-    ctx.fillStyle = "#e9e3d6"; ctx.fillRect(0, 0, 512, 512);
-    ctx.globalAlpha = 0.85;
-    ctx.fillStyle = "#24365e";
-    for (let x = 0; x < 512; x += 128) { ctx.fillRect(x, 0, 56, 512); ctx.fillRect(0, x, 512, 56); }
-    ctx.globalAlpha = 0.5;
-    ctx.fillStyle = "#1b2440";
-    for (let x = 0; x < 512; x += 128) ctx.fillRect(x + 18, 0, 20, 512);
-    for (let y = 0; y < 512; y += 128) ctx.fillRect(0, y + 18, 512, 20);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    for (let x = 90; x < 512; x += 128) { ctx.fillRect(x, 0, 3, 512); ctx.fillRect(0, x, 512, 3); }
-  });
-}
-// a throw with a zigzag weave
-function throwTexture() {
-  return canvasTex(512, 256, ctx => {
-    const cols = ["#3a4a6a", "#d8cfbe", "#9a5a3a", "#2a2f3a"];
-    for (let y = 0; y < 256; y += 32) {
-      ctx.fillStyle = cols[(y / 32) % cols.length];
-      ctx.beginPath(); ctx.moveTo(0, y);
-      for (let x = 0; x <= 512; x += 32) ctx.lineTo(x, y + ((x / 32) % 2 ? 16 : 0));
-      ctx.lineTo(512, y + 48); ctx.lineTo(0, y + 48); ctx.fill();
-    }
+// plain woven fabric: one colour, a faint weave, no print
+function weaveTexture(colour, seed) {
+  return canvasTex(128, 128, ctx => {
+    const rand = seeded(seed);
+    ctx.fillStyle = colour; ctx.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 128; i += 2) { ctx.fillStyle = `rgba(0,0,0,${0.03 + rand() * 0.03})`; ctx.fillRect(i, 0, 1, 128); ctx.fillRect(0, i, 128, 1); }
   });
 }
 // a garment's flat outline: shoulders, sleeves hanging, body to the hem
@@ -250,15 +213,18 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   rod.rotation.z = Math.PI / 2;
   rod.position.set(-0.3, 2.3, -1.82);
   scene.add(rod);
-  const curtainMat = new THREE.MeshStandardMaterial({ map: curtainTexture(), roughness: 0.95, side: THREE.DoubleSide });
+  const curtainTex = weaveTexture("#cfc4b0", 515);
+  curtainTex.wrapS = curtainTex.wrapT = THREE.RepeatWrapping;
+  curtainTex.repeat.set(3, 8);
+  const curtainMat = new THREE.MeshStandardMaterial({ map: curtainTex, roughness: 0.95, side: THREE.DoubleSide });
   const drape = (x, flip) => {
     const g = new THREE.PlaneGeometry(0.5, 1.95, 36, 8);
     const p = g.attributes.position;
     for (let i = 0; i < p.count; i++) {
       const u = p.getX(i), v = p.getY(i);
       const down = 1 - (v + 0.975) / 1.95; // 0 at the rod, 1 at the hem
-      // gathered at the rod, folds deepening toward the hem
-      p.setZ(i, Math.sin(u * 44) * 0.035 * (0.6 + 0.4 * down));
+      // gathered at the rod, folds of uneven depth that open out toward the hem
+      p.setZ(i, (Math.sin(u * 38 + 0.8) * 0.028 + Math.sin(u * 71 + 2.1) * 0.012) * (0.55 + 0.45 * down));
       p.setX(i, u * (0.75 + 0.25 * (1 - down)) + (flip ? -1 : 1) * 0.02 * down);
     }
     g.computeVertexNormals();
@@ -279,8 +245,8 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   street.shadow.bias = -0.0003;
   scene.add(street, street.target);
   scene.add(new THREE.HemisphereLight("#5e5040", "#1c160f", 1.6));
-  const fill = new THREE.PointLight("#ffc890", 4, 5, 1.4); // the hall light by the door, over the coats
-  fill.position.set(-1.3, 2.0, 1.7);
+  const fill = new THREE.PointLight("#ffc890", 2.6, 5, 1.4); // the hall light by the door, falling across the coats
+  fill.position.set(-0.8, 2.25, 1.95);
   scene.add(fill);
   const attention = new THREE.SpotLight("#ffe7cc", 0, 4, 0.22, 1, 2);
   attention.position.set(1.2, 1.9, 1.2);
@@ -303,49 +269,71 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
     };
   };
 
-  // ---- the bed against the right wall, head to the back wall
-  const bedX = 1.55, bedZ = -0.88;
+  // ---- the bed against the right wall, head to the back wall: plain bedding, slept in
+  const bedX = 1.6, bedZ = -0.88;
   const wood = new THREE.MeshStandardMaterial({ map: woodTexture(555), roughness: 0.5 });
-  scene.add(box(1.02, 0.26, 2.05, wood, bedX, 0.13, bedZ));
-  scene.add(box(1.02, 0.55, 0.05, wood, bedX, 0.42, -1.86)); // headboard
-  const mattress = new THREE.Mesh(new RoundedBoxGeometry(0.96, 0.18, 1.98, 3, 0.05), new THREE.MeshStandardMaterial({ color: "#e8e3d8", roughness: 0.9 }));
+  scene.add(box(0.96, 0.26, 2.05, wood, bedX, 0.13, bedZ));
+  scene.add(box(0.96, 0.55, 0.05, wood, bedX, 0.42, -1.86)); // headboard
+  const mattress = new THREE.Mesh(new RoundedBoxGeometry(0.92, 0.18, 1.98, 3, 0.05), new THREE.MeshStandardMaterial({ color: "#e6e1d6", roughness: 0.9 }));
   mattress.position.set(bedX, 0.35, bedZ);
   scene.add(mattress);
-  const duvet = new THREE.Mesh(lumpy(new RoundedBoxGeometry(1.04, 0.09, 1.55, 6, 0.04), 0.03, 557), new THREE.MeshStandardMaterial({ map: plaidTexture(), roughness: 0.92 }));
-  duvet.position.set(bedX - 0.02, 0.48, bedZ + 0.18);
-  duvet.rotation.y = 0.03;
+  // the duvet: a sheet of cloth over the mattress, its top rumpled, its edges falling over the sides
+  const duvetGeo = new THREE.PlaneGeometry(1.12, 1.6, 48, 64);
+  duvetGeo.rotateX(-Math.PI / 2);
+  {
+    const p = duvetGeo.attributes.position;
+    const rnd = seeded(557);
+    const folds = Array.from({ length: 7 }, () => ({ a: rnd() * 6.28, f: 4 + rnd() * 9, d: 0.006 + rnd() * 0.012, ph: rnd() * 6 }));
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), z = p.getZ(i);
+      let y = 0;
+      folds.forEach(o => (y += Math.sin((x * Math.cos(o.a) + z * Math.sin(o.a)) * o.f + o.ph) * o.d));
+      y += 0.03 * Math.exp(-((x + 0.1) ** 2 + (z - 0.1) ** 2) / 0.08); // where it was pushed back and bunched
+      const over = Math.max(0, Math.abs(x) - 0.43); // past the mattress edge, it falls
+      y -= over * over * 22 + over * 1.6;
+      p.setXYZ(i, x - Math.sign(x) * over * 0.55, y, z);
+    }
+    duvetGeo.computeVertexNormals();
+  }
+  const duvet = new THREE.Mesh(duvetGeo, new THREE.MeshStandardMaterial({ map: weaveTexture("#c9c2b5", 557), roughness: 0.95, side: THREE.DoubleSide }));
+  duvet.position.set(bedX, 0.47, bedZ + 0.2);
   duvet.castShadow = duvet.receiveShadow = true;
   scene.add(duvet);
-  const pillow = new THREE.Mesh(lumpy(new RoundedBoxGeometry(0.62, 0.13, 0.36, 5, 0.06), 0.02, 559), new THREE.MeshStandardMaterial({ map: plaidTexture(), roughness: 0.9 }));
-  pillow.position.set(bedX, 0.5, -1.62);
-  pillow.rotation.set(0.25, 0.05, 0);
-  pillow.castShadow = true;
-  scene.add(pillow);
-  const throwB = new THREE.Mesh(lumpy(new RoundedBoxGeometry(1.06, 0.05, 0.5, 4, 0.02), 0.025, 561), new THREE.MeshStandardMaterial({ map: throwTexture(), roughness: 0.95 }));
-  throwB.position.set(bedX - 0.03, 0.54, bedZ + 0.78);
-  throwB.rotation.y = -0.08;
-  throwB.castShadow = true;
-  scene.add(throwB);
+  // two pillows, plain ivory, soft and dented
+  const pillowMat = new THREE.MeshStandardMaterial({ map: weaveTexture("#ebe6da", 559), roughness: 0.92 });
+  [[-0.2, 0.18, 0.06], [0.18, -0.12, -0.05]].forEach(([dx, ry, rz], i) => {
+    const g = new THREE.SphereGeometry(0.2, 28, 14);
+    g.scale(1.45, 0.32, 0.85);
+    const p = g.attributes.position;
+    for (let k = 0; k < p.count; k++) { const x = p.getX(k), y = p.getY(k), z = p.getZ(k); if (y > 0) p.setY(k, y - 0.025 * Math.exp(-(x * x + z * z) / 0.01)); }
+    g.computeVertexNormals();
+    const pillow = new THREE.Mesh(g, pillowMat);
+    pillow.position.set(bedX + dx, 0.52 + i * 0.03, -1.64 + i * 0.05);
+    pillow.rotation.set(0.12, ry, rz);
+    pillow.castShadow = pillow.receiveShadow = true;
+    scene.add(pillow);
+  });
   // the black hoodie, dropped on the bed
   const hoodie = new THREE.Mesh(garmentGeo({ sw: 0.23, hw: 0.22, len: 0.66, sleeve: 0.62, hood: true, depth: 0.04 }), new THREE.MeshStandardMaterial({ map: clothTexture("#1a1a1c"), roughness: 0.95 }));
   hoodie.rotation.set(-Math.PI / 2, 0, 2.3);
-  hoodie.position.set(bedX - 0.05, 0.56, bedZ + 0.1);
+  hoodie.position.set(bedX - 0.05, 0.53, bedZ + 0.25);
   hoodie.castShadow = true;
   scene.add(hoodie);
 
   // ---- the nightstand at the bed's head: the paper lamp, the fragrances, a dish of rings
-  const nsX = 0.82, nsZ = -1.62, NS_Y = 0.56;
-  scene.add(box(0.46, NS_Y, 0.42, wood, nsX, NS_Y / 2, nsZ));
-  scene.add(box(0.4, 0.006, 0.005, new THREE.MeshStandardMaterial({ color: "#1c140e" }), nsX, 0.34, nsZ + 0.212, false));
+  const nsX = 0.91, nsZ = -1.64, NS_Y = 0.56; // between the end of the sill and the bed
+  scene.add(box(0.4, NS_Y, 0.4, wood, nsX, NS_Y / 2, nsZ));
+  scene.add(box(0.34, 0.006, 0.005, new THREE.MeshStandardMaterial({ color: "#1c140e" }), nsX, 0.34, nsZ + 0.202, false));
   const lampShade = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.5, 24, 1, true), new THREE.MeshStandardMaterial({ color: "#f3e3c4", emissive: new THREE.Color("#ffb45c"), emissiveIntensity: 1.0, roughness: 1, side: THREE.DoubleSide }));
-  lampShade.position.set(nsX - 0.12, NS_Y + 0.28, nsZ - 0.08);
+  lampShade.position.set(nsX - 0.08, NS_Y + 0.28, nsZ - 0.08);
   const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.03, 20), new THREE.MeshStandardMaterial({ color: "#2b2621", roughness: 0.4 }));
-  lampBase.position.set(nsX - 0.12, NS_Y + 0.015, nsZ - 0.08);
+  lampBase.position.set(nsX - 0.08, NS_Y + 0.015, nsZ - 0.08);
   scene.add(lampShade, lampBase);
   const lamp = new THREE.PointLight("#ffb46a", 7, 6, 1.4);
-  lamp.position.set(nsX - 0.12, NS_Y + 0.32, nsZ - 0.02);
+  lamp.position.set(nsX - 0.08, NS_Y + 0.32, nsZ - 0.02);
   scene.add(lamp);
-  const spots = [{ x: nsX + 0.04, z: nsZ - 0.06, ry: 0.15 }, { x: nsX + 0.14, z: nsZ - 0.02, ry: -0.3 }, { x: nsX + 0.11, z: nsZ + 0.1, ry: 0.35 }];
+  // the 100 ml at the back, the two 50 ml in front of it
+  const spots = [{ x: nsX + 0.08, z: nsZ - 0.1, ry: 0.45 }, { x: nsX + 0.11, z: nsZ + 0.03, ry: 0.6 }, { x: nsX + 0.04, z: nsZ + 0.12, ry: 0.5 }]; // labels turned toward the room
   fragrances.slice(0, spots.length).forEach((data, i) => {
     const bottle = createBottle(data, i + 1);
     const s = spots[i];
@@ -377,7 +365,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   });
   // rings, two small hoops, a chain, on a dark glazed dish so the silver shows
   const dish = new THREE.Group();
-  dish.position.set(nsX - 0.08, NS_Y, nsZ + 0.12);
+  dish.position.set(nsX - 0.1, NS_Y, nsZ + 0.11);
   dish.add(new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.04, 0.016, 28), new THREE.MeshPhysicalMaterial({ color: "#1d2a2c", roughness: 0.15, clearcoat: 1 })));
   const silver = new THREE.MeshStandardMaterial({ color: "#e4e4e0", metalness: 1, roughness: 0.14 });
   [[0.02, 0.014, 0.008, 0.3, 0.011, 0.003], [-0.018, 0.013, -0.014, 1.2, 0.01, 0.0025], [0.002, 0.016, 0.022, 2.1, 0.0105, 0.0036], [-0.028, 0.012, 0.014, 0.6, 0.007, 0.0011], [-0.02, 0.012, 0.028, 1.9, 0.007, 0.0011]].forEach(([x, y, z, r, R, t]) => {
@@ -467,9 +455,36 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   scene.add(booksHit);
 
   // ---- the CRT on a low stand against the left wall, turned toward the room
-  scene.add(box(0.6, 0.42, 0.45, wood, -1.82, 0.21, 0.02));
+  // a low TV cabinet: tapered legs, two doors with brass pulls, an open shelf of film cases
+  const cab = new THREE.Group();
+  cab.position.set(-1.8, 0, 0.02);
+  cab.rotation.y = Math.PI / 2 - 0.45;
+  const teak = new THREE.MeshStandardMaterial({ map: woodTexture(571), color: "#a0704a", roughness: 0.55 });
+  const CW = 0.78, CD = 0.42;
+  cab.add(box(CW, 0.025, CD, teak, 0, 0.405, 0));                    // top
+  cab.add(box(CW, 0.02, CD, teak, 0, 0.13, 0));                      // bottom
+  [-1, 1].forEach(sd => cab.add(box(0.02, 0.29, CD, teak, sd * (CW / 2 - 0.01), 0.27, 0))); // sides
+  cab.add(box(CW, 0.29, 0.015, teak, 0, 0.27, -CD / 2 + 0.008));    // back
+  cab.add(box(0.015, 0.29, CD - 0.02, teak, 0.06, 0.27, 0));         // divider
+  // doors on the left bay
+  const door = box(0.4, 0.26, 0.015, teak, -0.165, 0.27, CD / 2 - 0.006);
+  cab.add(door);
+  cab.add(box(0.004, 0.24, 0.004, new THREE.MeshStandardMaterial({ color: "#2a1c10" }), -0.165, 0.27, CD / 2 + 0.002, false));
+  [-0.19, -0.14].forEach(x => cab.add(box(0.012, 0.04, 0.012, new THREE.MeshStandardMaterial({ color: "#b8955e", metalness: 0.8, roughness: 0.35 }), x, 0.29, CD / 2 + 0.01, false)));
+  // the open bay: film cases on their edges
+  const caseCols = ["#1b1b1d", "#2a2c3a", "#3b2420", "#1e2a24", "#2b2b2b", "#4a3a2a"];
+  for (let i = 0; i < 9; i++) cab.add(box(0.015, 0.19, 0.135, new THREE.MeshStandardMaterial({ color: caseCols[i % caseCols.length], roughness: 0.4 }), 0.09 + i * 0.019, 0.237, 0.04, true));
+  // tapered legs
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.008, 0.13, 8), teak);
+    leg.position.set(a * (CW / 2 - 0.05), 0.065, b * (CD / 2 - 0.05));
+    leg.rotation.z = -a * 0.08; leg.rotation.x = b * 0.08;
+    leg.castShadow = true;
+    cab.add(leg);
+  });
+  scene.add(cab);
   const crt = new THREE.Group();
-  crt.position.set(-1.8, 0.42, 0.02);
+  crt.position.set(-1.8, 0.4175, 0.02);
   crt.rotation.y = Math.PI / 2 - 0.45;
   const crtBody = new THREE.Mesh(new RoundedBoxGeometry(0.46, 0.39, 0.42, 3, 0.03), new THREE.MeshStandardMaterial({ color: "#2b2a28", roughness: 0.55 }));
   crtBody.position.y = 0.195;
@@ -524,7 +539,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
     const g = new THREE.Group();
     const hook = new THREE.Mesh(new THREE.TorusGeometry(0.02, 0.004, 6, 12, Math.PI * 1.3), hookMat);
     hook.rotation.y = Math.PI / 2;
-    const cloth = new THREE.Mesh(garmentGeo(p), new THREE.MeshStandardMaterial({ map: clothTexture(p.color), roughness: 0.92 }));
+    const cloth = new THREE.Mesh(garmentGeo(p), new THREE.MeshStandardMaterial({ map: clothTexture(p.color), color: "#8a8a8a", roughness: 0.92 }));
     cloth.position.set(0.02, -0.03, 0);
     cloth.rotation.y = Math.PI / 2; // facing into the room
     cloth.castShadow = cloth.receiveShadow = true;
@@ -538,17 +553,24 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   scene.add(railHit);
 
   // ---- the low table on the rug: the MacBook open and asleep, a mug, a manga left open
-  const rug = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.25), new THREE.MeshStandardMaterial({ map: rugTexture(), roughness: 1 }));
-  rug.rotation.x = -Math.PI / 2;
-  rug.position.set(-0.4, 0.004, -0.2);
-  rug.receiveShadow = true;
-  scene.add(rug);
+  // two tatami mats laid side by side under the low table, edged in dark cloth
+  const tatamiMat = new THREE.MeshStandardMaterial({ map: tatamiTexture(), color: "#c4c4c4", roughness: 0.88 });
+  const heri = new THREE.MeshStandardMaterial({ map: weaveTexture("#262a26", 517), roughness: 0.8 });
+  const tatamiSide = new THREE.MeshStandardMaterial({ color: "#8f8763", roughness: 0.9 });
+  [-0.85, 0.05].forEach((x, i) => {
+    const mat = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.045, 1.8), [tatamiSide, tatamiSide, tatamiMat, tatamiSide, tatamiSide, tatamiSide]);
+    mat.position.set(x, 0.0225, -0.35 + i * 0.02);
+    mat.receiveShadow = true;
+    scene.add(mat);
+    [-1, 1].forEach(s2 => scene.add(box(0.03, 0.047, 1.8, heri, x + s2 * 0.435, 0.0225, -0.35 + i * 0.02, false))); // the cloth borders along the long sides
+  });
+  const MAT_Y = 0.045; // things on the tatami sit this high
   const tableWood = new THREE.MeshStandardMaterial({ map: woodTexture(533), roughness: 0.45 });
   const TX = -0.42, TZ = -0.32;
-  scene.add(box(0.9, 0.035, 0.55, tableWood, TX, 0.36, TZ));
-  [[-0.41, -0.23], [0.41, -0.23], [-0.41, 0.23], [0.41, 0.23]].forEach(([x, z]) => scene.add(box(0.04, 0.34, 0.04, tableWood, TX + x, 0.17, TZ + z)));
+  scene.add(box(0.9, 0.035, 0.55, tableWood, TX, 0.36 + MAT_Y, TZ));
+  [[-0.41, -0.23], [0.41, -0.23], [-0.41, 0.23], [0.41, 0.23]].forEach(([x, z]) => scene.add(box(0.04, 0.34, 0.04, tableWood, TX + x, 0.17 + MAT_Y, TZ + z)));
   const laptop = new THREE.Group();
-  laptop.position.set(TX - 0.12, 0.378, TZ - 0.03);
+  laptop.position.set(TX - 0.12, 0.378 + MAT_Y, TZ - 0.03);
   laptop.rotation.y = 0.4;
   const alu = new THREE.MeshStandardMaterial({ color: "#b4b6b6", metalness: 0.85, roughness: 0.32 });
   const shell = new THREE.Mesh(new RoundedBoxGeometry(0.31, 0.009, 0.215, 2, 0.004), alu);
@@ -594,7 +616,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   laptop.add(laptopHit);
   scene.add(laptop);
   const mug = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.037, 0.09, 18), new THREE.MeshStandardMaterial({ color: "#2f3d3a", roughness: 0.4 }));
-  mug.position.set(TX + 0.28, 0.423, TZ - 0.12);
+  mug.position.set(TX + 0.28, 0.423 + MAT_Y, TZ - 0.12);
   mug.castShadow = true;
   scene.add(mug);
   const openBook = new THREE.Group();
@@ -606,12 +628,12 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
     half.castShadow = true;
     openBook.add(half);
   });
-  openBook.position.set(TX + 0.2, 0.378, TZ + 0.12);
+  openBook.position.set(TX + 0.2, 0.378 + MAT_Y, TZ + 0.12);
   openBook.rotation.y = -0.5;
   scene.add(openBook);
   // a floor cushion on the near side of the table
   const cushion = new THREE.Mesh(lumpy(new RoundedBoxGeometry(0.5, 0.08, 0.5, 4, 0.035), 0.012, 565), new THREE.MeshStandardMaterial({ color: "#2f4a7a", roughness: 0.9 }));
-  cushion.position.set(TX + 0.05, 0.04, TZ + 0.62);
+  cushion.position.set(TX + 0.05, 0.04 + MAT_Y, TZ + 0.62);
   cushion.rotation.y = 0.2;
   cushion.receiveShadow = true;
   scene.add(cushion);
@@ -634,7 +656,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   });
   add({
     id: "apt-laptop", stop: "rest", hits: [laptopHit], object: laptop, caption: "What's on the laptop",
-    examine: shotAt(V(TX - 0.12, 0.47, TZ - 0.05), V(0.32, 0.26, 0.5), "right", 38),
+    examine: shotAt(V(TX - 0.12, 0.47 + MAT_Y, TZ - 0.05), V(0.32, 0.26, 0.5), "right", 38),
     panel: collectionPanel("laptop", { actions: linkOr(site.links.github, "") ? [{ label: "GitHub", href: site.links.github }] : [] }),
   });
   add({
@@ -645,7 +667,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   });
   add({
     id: "apt-jewelry", stop: "rest", hits: [dishHit], object: dish, caption: "Rings and chains",
-    examine: shotAt(V(nsX - 0.08, NS_Y + 0.02, nsZ + 0.12), V(-0.16, 0.26, 0.26), "left", 30),
+    examine: shotAt(V(nsX - 0.1, NS_Y + 0.02, nsZ + 0.11), V(-0.16, 0.26, 0.26), "left", 30),
     panel: collectionPanel("jewelry"),
   });
   add({
@@ -676,8 +698,8 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   return {
     artifacts,
     shots: {
-      rest: { position: V(1.55, 1.62, 2.15), target: V(-0.6, 0.72, -0.95), fov: 54 },
-      restPortrait: { position: V(1.25, 1.6, 2.35), target: V(0.35, 0.72, -0.95), fov: 72 },
+      rest: { position: V(1.75, 1.9, 2.25), target: V(-0.45, 0.5, -0.85), fov: 56 },
+      restPortrait: { position: V(1.4, 1.85, 2.3), target: V(0.25, 0.55, -0.95), fov: 74 },
     },
     // the match cut lands here: the rain on this window, close up, before pulling back
     entryShot: () => ({ position: V(-0.3, 1.52, -1.4), target: V(-0.3, 1.52, -2.0), fov: 34 }),

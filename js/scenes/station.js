@@ -1,14 +1,13 @@
-// Who I Am, 11:40 pm, San Leandro on the K line. An elevated platform, still
-// running: the last train toward Berkeley pulls in as you arrive, opens its
-// doors, and waits with people inside; the board says where it's going and
+// Who I Am, 11:40 pm, Berkeley on the K line: a personal line through the
+// places I've lived. An elevated platform, still running: the last train pulls
+// in as you arrive and opens its doors; the board says where it's going and
 // what it's doing; a tube stutters; rain falls past the canopy. The line map
-// on the back wall is the places I grew up. Leaving: you step on, the doors
-// close, and the train pulls out with you aboard.
+// stands on the platform. Leaving: you step to the doors as they close, and cut.
 //
 // Coordinates: meters; the platform runs along x, its top at y = 0, its
 // edge at z = 0 with the tracks at +z and the back wall at z = -4.2.
 import * as THREE from "three";
-import { platformTiles, tactileStrip, concrete, gravel, vendingFront, ledBoard, ticketTexture, routeMap, neonCity } from "../objects/station-textures.js";
+import { platformTiles, tactileStrip, concrete, gravel, vendingFront, ledBoard, ticketTexture, routeMap, stationSign, neonCity } from "../objects/station-textures.js";
 import { createTrain } from "../objects/train.js";
 import { createLetter } from "../objects/paper.js";
 import { makeHandle, pose } from "../core/handling.js";
@@ -79,10 +78,13 @@ function rain(count = 1800) {
 
 export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   const { person, links } = site;
-  const route = site.route || { line: "K", stops: [{ name: "Station", stop: "station" }] };
-  const here = Math.max(0, route.stops.findIndex(s => s.stop === "station"));
-  const destination = route.stops[route.stops.length - 1].name;
-  const nextStop = route.stops[here + 1]?.name || destination;
+  const route = site.route || { line: "K", stops: [{ name: "Station", here: true }] };
+  const here = Math.max(0, route.stops.findIndex(s => s.here));
+  const hereName = route.stops[here].name;
+  // trains run toward whichever end is further away
+  const toEnd = here < route.stops.length / 2 ? route.stops.length - 1 : 0;
+  const destination = route.stops[toEnd].name;
+  const nextStop = route.stops[here + (toEnd > here ? 1 : -1)]?.name || destination;
   scene.background = new THREE.Color("#06100f");
   scene.fog = new THREE.FogExp2("#0b1917", 0.026);
 
@@ -111,6 +113,21 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   scene.add(line);
   scene.add(box(44, 0.066, 0.2, paint, 0, -0.027, -0.05, { cast: false })); // edge coping, 6 mm proud of the tiles
   scene.add(box(44, 1.1, 0.3, wall, 0, -0.6, 0.0, { cast: false }));       // the platform's face
+
+  // grime where the back wall meets the floor, and the damp along the platform edge where rain blows in
+  const shade = (w, h, stops) => {
+    const c = document.createElement("canvas"); c.width = 8; c.height = 128;
+    const x = c.getContext("2d"); const g = x.createLinearGradient(0, 0, 0, 128);
+    stops.forEach(([k, a]) => g.addColorStop(k, `rgba(0,0,0,${a})`)); x.fillStyle = g; x.fillRect(0, 0, 8, 128);
+    return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
+  };
+  const grime = shade(44, 0.7, [[0, 0], [1, 0.45]]);
+  grime.position.set(0, 0.35, -4.195);
+  scene.add(grime);
+  const damp = shade(44, 0.9, [[0, 0.22], [1, 0]]);
+  damp.rotation.x = -Math.PI / 2;
+  damp.position.set(0, 0.006, -0.5);
+  scene.add(damp);
 
   // ---- the track bed, rails and sleepers
   const bed = new THREE.Mesh(new THREE.PlaneGeometry(44, 4.4), new THREE.MeshStandardMaterial({ map: gravel(), roughness: 1 }));
@@ -153,15 +170,15 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   const tubeMat = new THREE.MeshBasicMaterial({ color: tubeColour.clone().multiplyScalar(2.4) });
   const tubeTired = new THREE.MeshBasicMaterial({ color: tubeColour.clone().multiplyScalar(2.4) });
   const glowTex = wetGlowTexture();
-  for (let x = -17.25; x <= 18; x += 4.5) {
-    const tired = Math.abs(x - 4.5) < 0.1;
+  for (let x = -17.7; x <= 18; x += 4.5) {
+    const tired = Math.abs(x - 4.8) < 0.1;
     scene.add(box(1.2, 0.05, 0.1, tired ? tubeTired : tubeMat, x, 3.08, -1.5, { cast: false, receive: false }));
     const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 3.2), new THREE.MeshBasicMaterial({ map: glowTex, color: "#bfe8d8", transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8 }));
     glow.rotation.set(-Math.PI / 2, 0, Math.PI / 2 + 0.12);
     glow.position.set(x - 0.3, 0.008, -1.3);
     scene.add(glow);
   }
-  const lamps = [-3.75, 5.25].map(x => {
+  const lamps = [-4.2, 4.8].map(x => {
     const l = new THREE.PointLight("#cdf3e2", 10, 11, 1.5);
     l.position.set(x, 2.95, -1.5);
     scene.add(l);
@@ -169,8 +186,8 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   });
   // the tube above the bench casts the shadows
   const key = new THREE.SpotLight("#dff5ea", 26, 7, 0.95, 0.85, 1.6);
-  key.position.set(0.75, 3.0, -1.6);
-  key.target.position.set(0.6, 0, -2.4);
+  key.position.set(0.3, 3.0, -1.6);
+  key.target.position.set(0.3, 0, -3.2);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
   key.shadow.bias = -0.0004;
@@ -198,7 +215,7 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   scene.add(vmGlow);
 
   // ---- the bench, with the letter and the ticket on it
-  const benchX = 0.6, benchZ = -2.55;
+  const benchX = 0.3, benchZ = -3.55; // under the map, against the wall
   const wood = new THREE.MeshStandardMaterial({ color: "#5b4632", roughness: 0.7 });
   [0, 1, 2].forEach(i => scene.add(box(1.9, 0.035, 0.11, wood, benchX, 0.45, benchZ - 0.14 + i * 0.13)));
   [0, 1].forEach(i => scene.add(box(1.9, 0.11, 0.035, wood, benchX, 0.68 + i * 0.15, benchZ - 0.24)));
@@ -222,13 +239,30 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   const ticketHit = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.14, 0.28), hitMat);
   ticket.add(ticketHit);
 
-  // ---- the K line map, backlit, on the back wall beside the bench
-  const mapX = -1.0, mapY = 1.62;
-  const mapFrame = box(1.87, 0.87, 0.07, new THREE.MeshStandardMaterial({ color: "#2a2f2d", metalness: 0.5, roughness: 0.4 }), mapX, mapY, -4.165, { cast: false });
-  scene.add(mapFrame);
-  const mapFace = new THREE.Mesh(new THREE.PlaneGeometry(1.75, 0.75), new THREE.MeshBasicMaterial({ map: routeMap(route, here), color: new THREE.Color(1.12, 1.12, 1.1) }));
-  mapFace.position.set(mapX, mapY, -4.128);
-  scene.add(mapFace);
+  // ---- the K line map: a backlit lightbox on the back wall, centred between the pillars over
+  // the bench, with the station's name signs paired either side under the tile band
+  const AXIS = 0.3; // the bay's centre line: halfway between the pillars at -4.2 and 4.8
+  const mapX = AXIS, mapY = 1.5, mapZ = -4.2;
+  const mapStand = new THREE.Group();
+  mapStand.position.set(mapX, 0, mapZ);
+  const frameMat = new THREE.MeshStandardMaterial({ color: "#23282a", metalness: 0.5, roughness: 0.45 });
+  mapStand.add(box(1.74, 0.78, 0.07, frameMat, 0, mapY, 0.035, { cast: false }));
+  const mapFace = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.64), new THREE.MeshBasicMaterial({ map: routeMap(route), color: new THREE.Color(1.08, 1.08, 1.06) }));
+  mapFace.position.set(0, mapY, 0.072);
+  mapStand.add(mapFace);
+  scene.add(mapStand);
+  // its light on the platform below it
+  const mapGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.9), new THREE.MeshBasicMaterial({ map: glowTex, color: "#e8e4d6", transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8 }));
+  mapGlow.rotation.set(-Math.PI / 2, 0, Math.PI / 2);
+  mapGlow.position.set(mapX, 0.008, -3.85);
+  scene.add(mapGlow);
+  [-2.6, 2.6, -9, 9].forEach(dx => {
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.27), new THREE.MeshBasicMaterial({ map: stationSign(route, hereName), color: new THREE.Color(1.05, 1.05, 1.05) }));
+    sign.position.set(AXIS + dx, 1.92, -4.185);
+    scene.add(sign);
+  });
+  const mapCentre = V(mapX, mapY, mapZ + 0.07);
+  const mapNormal = V(0, 0, 1);
 
   // ---- the departure board, hanging from the canopy: the line, where it's going, what it's doing
   const board = new THREE.Group();
@@ -296,15 +330,17 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
     {
       id: "station-map", stop: "rest", hit: mapFace, object: mapFace,
       caption: "Read the line map",
-      examine: portrait => portrait
-        ? { side: "bottom", position: V(mapX, mapY - 0.1, 0.0), target: V(mapX, mapY - 0.62, -4.1), fov: 44 }
-        : { side: "right", position: V(mapX + 0.7, mapY - 0.02, -1.6), target: V(mapX + 0.58, mapY - 0.02, -4.1), fov: 34 },
-      leave: () => ({ position: V(mapX + 0.4, mapY, -3.1), target: V(mapX + 0.4, mapY, -4.1), fov: 30 }),
+      examine: portrait => ({
+        side: portrait ? "bottom" : "right",
+        position: mapCentre.clone().addScaledVector(mapNormal, portrait ? 2.8 : 3.2).add(V(portrait ? 0 : 0.52, portrait ? -0.25 : 0, 0)),
+        target: mapCentre.clone().add(V(portrait ? 0 : 0.52, portrait ? -0.45 : 0, 0)),
+        fov: portrait ? 44 : 34,
+      }),
+      leave: () => ({ position: mapCentre.clone().addScaledVector(mapNormal, 0.9), target: mapCentre.clone(), fov: 30 }),
       panel: () => ({
         title: route.name || `${route.line} Line`,
         meta: route.stops.map(s => s.name).join(" · "),
-        body: "The places I grew up, in order. Two of them are tonight's other stops.",
-        actions: route.stops.filter(s => s.stop && s.stop !== "station").map(s => ({ label: `Ride to ${s.name}`, href: `#${s.stop}`, internal: true })),
+        body: `The places I've lived, in order. ${hereName} is now.`,
       }),
     },
     {
@@ -341,8 +377,7 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   const homeY = { letter: seatY, ticket: seatY };
 
   let flicker = 0;
-  const restFocusPoint = V(0.6, 0.6, -2.4);
-  const inside = portrait => ({ position: V(door - 0.25, 1.55, 1.12), target: V(door - 3.6, 1.2, 2.9), fov: portrait ? 64 : 50 }); // looking down the length of the car
+  const restFocusPoint = V(0.3, 0.8, -3.6);
   return {
     artifacts,
     shots: {
@@ -354,10 +389,10 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
     lights: { attention },
     enter: arrive,
     keepsCamera: true,
-    // boarding: walk to the open door, step in, the doors close, the train pulls out with you aboard
+    // boarding: a few steps to the open doorway as the doors begin to close, then cut
     exit(done, { rig, portrait }) {
-      ride = { t: 0, done, rig, portrait, stage: 0 };
-      rig.go({ position: V(door - 0.15, 1.5, -1.25), target: V(door + 0.1, 1.35, 1.6), fov: 42 }, 1.3);
+      ride = { t: 0, done, stage: 0 };
+      rig.go({ position: V(door - 0.1, 1.55, -0.55), target: V(door + 0.15, 1.4, 2.4), fov: portrait ? 56 : 44 }, 1.1);
     },
     reset() { train.group.position.x = FRONT_X; arriving = null; ride = null; speed = 0; train.openDoors(false); },
     update(t, dt, held, hovered) {
@@ -386,18 +421,8 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
       if (doorWait >= 0) { doorWait -= dt; if (doorWait < 0) { train.openDoors(true); boardT = 0; } }
       if (ride) {
         ride.t += dt;
-        if (ride.stage === 0 && ride.t > 1.3) { ride.stage = 1; ride.rig.go(inside(ride.portrait), 1.6); }
-        if (ride.stage === 1 && ride.t > 3.0) { ride.stage = 2; train.openDoors(false); face.material.map = boards.closing; }
-        if (ride.stage === 2 && ride.t > 3.9) { ride.stage = 3; ride.x0 = train.group.position.x; }
-        if (ride.stage === 3) {
-          speed += dt * 2.6;
-          train.group.position.x += speed * dt;
-          const dx = train.group.position.x - ride.x0;
-          const s = inside(ride.portrait);
-          s.position.x += dx; s.target.x += dx;
-          ride.rig.set(s);
-          if (ride.t > 6.3 && ride.done) { const d = ride.done; ride.done = null; d(); }
-        }
+        if (ride.stage === 0 && ride.t > 0.55) { ride.stage = 1; train.openDoors(false); face.material.map = boards.closing; }
+        if (ride.stage === 1 && ride.t > 1.05 && ride.done) { const d = ride.done; ride.done = null; d(); }
       } else if (train.doorsOpen === 1 && !reducedMotion) {
         // waiting with the doors open: the board alternates between the doors and the next stop
         boardT += dt;

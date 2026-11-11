@@ -257,92 +257,110 @@ export function ledBoard({ line = "K", colour = "#c8261f", destination = "", sta
       cx += 6 * gap;
     }
   };
-  // the line badge: a lit square in the line's colour with the letter knocked out
+  // the line bullet: a lit disc in the line's colour, the letter knocked out, as on the map
   ctx.fillStyle = colour;
-  ctx.fillRect(14, 14, 66, 66);
+  ctx.beginPath(); ctx.arc(47, 47, 34, 0, Math.PI * 2); ctx.fill();
   const g = LED[line.toUpperCase()] || LED[" "];
   g.forEach((r, ry) => [...r].forEach((on, k) => {
-    if (on === "1") { ctx.fillStyle = "#fff3e6"; ctx.beginPath(); ctx.arc(28 + k * gap, 20 + ry * gap, dot / 2, 0, Math.PI * 2); ctx.fill(); }
+    if (on === "1") { ctx.fillStyle = "#fff3e6"; ctx.beginPath(); ctx.arc(31 + k * 8, 23 + ry * 8, dot / 2, 0, Math.PI * 2); ctx.fill(); }
   }));
   row(destination, 100, 20, "#ffb347");
   row(status, 20, 100, "#ffb347");
   return tex(c);
 }
 
-// The line diagram on the platform wall, drawn the way transit maps are: one
-// coloured line, a tick or ring for each stop, names set beside them, the two
-// ends named as termini, the stop you're at marked. Stops come from site.json.
-export function routeMap(route, hereIndex = 0) {
-  const W = 1400, H = 600;
+// The K line map: one straight line in the line's colour, stations evenly
+// spaced, a tick for each stop and a ring for each end, names set level above
+// the line, the current stop (where I live now) filled and marked. It's a
+// personal line, so the header says so. Stops and order come from site.json.
+const SANS = '"Helvetica Neue", Helvetica, Arial, sans-serif';
+export function routeMap(route) {
+  const W = 1600, H = 640;
   const [c, ctx] = cv(W, H);
-  const sans = '"Helvetica Neue", Helvetica, Arial, sans-serif';
   const col = route.colour || "#c8261f";
-  ctx.fillStyle = "#f4f2ec";
+  const ink = "#1c201f", soft = "#6c706c";
+  ctx.fillStyle = "#f3f1ea";
   ctx.fillRect(0, 0, W, H);
-  // header strip: the line's bullet, its name, the direction
-  ctx.fillStyle = "#1b1f1e";
-  ctx.fillRect(0, 0, W, 110);
+  // header band: the bullet, the line's name, both ends
+  ctx.fillStyle = ink;
+  ctx.fillRect(0, 0, W, 132);
   ctx.fillStyle = col;
-  ctx.beginPath(); ctx.arc(80, 55, 34, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(92, 66, 42, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = "#fff";
-  ctx.font = `700 40px ${sans}`;
   ctx.textAlign = "center";
-  ctx.fillText(route.line, 80, 69);
+  ctx.font = `700 50px ${SANS}`;
+  ctx.fillText(route.line, 92, 84);
   ctx.textAlign = "left";
-  ctx.font = `600 38px ${sans}`;
-  ctx.fillText(route.name || `${route.line} Line`, 134, 68);
+  ctx.font = `600 46px ${SANS}`;
+  ctx.fillText(route.name || `${route.line} Line`, 160, 82);
   const stops = route.stops;
-  const end = stops[stops.length - 1].name, start = stops[0].name;
-  ctx.font = `400 26px ${sans}`;
-  ctx.fillStyle = "#c9ccc8";
-  const dir = `${start}  —  ${end}`;
-  ctx.fillText(dir, W - 60 - ctx.measureText(dir).width, 66);
-  // the line
-  const y = 330, x0 = 170, x1 = W - 170;
+  ctx.font = `400 30px ${SANS}`;
+  ctx.fillStyle = "#b9bdb8";
+  const ends = `${stops[0].name}  –  ${stops[stops.length - 1].name}`;
+  ctx.fillText(ends, W - 64 - ctx.measureText(ends).width, 80);
+  // the line itself, with rounded ends past the termini
+  const y = 380, x0 = 190, x1 = W - 190;
   ctx.strokeStyle = col;
-  ctx.lineWidth = 22;
-  ctx.lineCap = "butt";
-  ctx.beginPath(); ctx.moveTo(x0 - 40, y); ctx.lineTo(x1 + 40, y); ctx.stroke();
-  // terminus caps
-  [x0 - 40, x1 + 40].forEach(x => { ctx.fillStyle = col; ctx.fillRect(x - 6, y - 26, 12, 52); });
+  ctx.lineWidth = 26;
+  ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(x0 - 30, y); ctx.lineTo(x1 + 30, y); ctx.stroke();
   stops.forEach((s, i) => {
     const x = x0 + (x1 - x0) * (i / (stops.length - 1));
-    const terminus = i === 0 || i === stops.length - 1;
-    const here = i === hereIndex;
-    if (terminus || s.stop) {
-      // a ring: a station with somewhere to go
-      ctx.fillStyle = "#fff"; ctx.strokeStyle = "#1b1f1e"; ctx.lineWidth = 8;
+    const end = i === 0 || i === stops.length - 1;
+    if (s.here) {
+      // the current stop: a heavy ring filled with the line's colour, a dark flag above
+      ctx.fillStyle = "#fff"; ctx.strokeStyle = ink; ctx.lineWidth = 9;
+      ctx.beginPath(); ctx.arc(x, y, 31, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.fill();
+    } else if (end) {
+      ctx.fillStyle = "#fff"; ctx.strokeStyle = ink; ctx.lineWidth = 8;
       ctx.beginPath(); ctx.arc(x, y, 24, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     } else {
-      // a tick: a stop the line passes through
-      ctx.fillStyle = col; ctx.fillRect(x - 6, y - 40, 12, 40);
+      // an intermediate stop: a white tick across the line
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(x - 5, y - 13, 10, 26);
     }
-    if (here) {
-      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.fill();
-      // "you are here" flag above
-      ctx.fillStyle = "#1b1f1e";
-      ctx.font = `700 22px ${sans}`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = ink;
+    ctx.font = `${s.here ? 700 : end ? 600 : 500} ${s.here ? 46 : 40}px ${SANS}`;
+    ctx.fillText(s.name, x, y - 70);
+    if (s.here) {
+      ctx.font = `700 22px ${SANS}`;
       const t = "YOU ARE HERE";
       const tw = ctx.measureText(t).width;
-      ctx.beginPath(); ctx.roundRect(x - tw / 2 - 14, y - 112, tw + 28, 40, 6); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(x - 10, y - 72); ctx.lineTo(x + 10, y - 72); ctx.lineTo(x, y - 58); ctx.fill();
+      ctx.fillStyle = ink;
+      ctx.beginPath(); ctx.roundRect(x - tw / 2 - 16, y + 54, tw + 32, 40, 4); ctx.fill();
       ctx.fillStyle = "#fff";
-      ctx.textAlign = "center";
-      ctx.fillText(t, x, y - 84);
-      ctx.textAlign = "left";
+      ctx.fillText(t, x, y + 82);
     }
-    // names below the line, termini bold
-    ctx.fillStyle = "#1b1f1e";
-    ctx.textAlign = "center";
-    ctx.font = `${terminus ? 700 : 500} 36px ${sans}`;
-    ctx.fillText(s.name, x, y + 84);
     ctx.textAlign = "left";
   });
-  // a footer like the small print on real maps
-  ctx.fillStyle = "#6b6f6b";
-  ctx.font = `400 22px ${sans}`;
-  ctx.fillText(`Trains every 20 min until late.  Last train toward ${end} departs 23:58.`, 60, H - 44);
+  // the small print, the way real maps carry it
+  ctx.fillStyle = soft;
+  ctx.font = `400 24px ${SANS}`;
+  ctx.fillText(route.note || "", 64, H - 46);
   ctx.strokeStyle = "rgba(0,0,0,0.12)"; ctx.lineWidth = 10; ctx.strokeRect(5, 5, W - 10, H - 10);
+  return tex(c);
+}
+
+// A station-name sign for the wall: the dark band, the line's bullet, the name in white.
+export function stationSign(route, name) {
+  const W = 1024, H = 160;
+  const [c, ctx] = cv(W, H);
+  const col = route.colour || "#c8261f";
+  ctx.fillStyle = "#1c201f";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(84, 80, 46, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+  ctx.font = `700 56px ${SANS}`;
+  ctx.fillText(route.line, 84, 100);
+  ctx.textAlign = "left";
+  ctx.font = `600 78px ${SANS}`;
+  ctx.fillText(name, 164, 108);
+  ctx.fillStyle = col;
+  ctx.fillRect(0, H - 10, W, 10);
   return tex(c);
 }
 

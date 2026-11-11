@@ -18,7 +18,7 @@ if (ready) {
     <p class="meta">${escapeHTML(person.school)}. ${escapeHTML(person.graduation)}.</p>
 
     <h2 id="about">Who I am</h2>
-    <p>${escapeHTML(person.line)}</p>
+    ${person.line ? `<p>${escapeHTML(person.line)}</p>` : ""}
     ${(person.bio || []).map(p => `<p>${escapeHTML(p)}</p>`).join("")}
 
     <h2 id="projects">Projects</h2>

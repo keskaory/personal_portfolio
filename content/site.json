@@ -2,9 +2,10 @@
   "_note": "Site-wide details and the order of the homepage. Everything marked sample is placeholder. 'stops' is the sequence you scroll through; each stop names a scene and a camera shot in that scene.",
   "person": {
     "name": "Kaory Gatmaitan",
+    "titleName": "Kaory San Gatmaitan",
     "school": "Data Science, UC Berkeley",
     "graduation": "Graduating December 2027",
-    "line": "Sample line: one sentence about the kind of work you want to do next.",
+    "intro": "Currently studying Data Science at UC Berkeley",
     "bio": [
       "Sample paragraph. A few sentences about where you come from and what got you into data, written in your own voice.",
       "Sample paragraph. What you are looking for now, and the problems you would like to spend your time on."
@@ -24,8 +25,7 @@
       "shot": "rest",
       "chapter": "Who I Am",
       "label": "Who I am",
-      "titleCard": true,
-      "subtitle": "Sample subtitle: the last train, a little before midnight."
+      "titleCard": true
     },
     {
       "id": "restaurant",
@@ -34,7 +34,7 @@
       "chapter": "Selected Work",
       "label": "Selected work",
       "nav": false,
-      "subtitle": "Sample subtitle: somewhere still open, still warm."
+      "subtitle": "It's strange how one thing leads to another."
     },
     {
       "id": "projects",
@@ -58,7 +58,7 @@
       "shot": "rest",
       "chapter": "Beyond the Work",
       "label": "Beyond the work",
-      "subtitle": "Sample subtitle: home, and the rain still going."
+      "subtitle": "I wonder how much of ourselves we leave in the things we keep."
     }
   ],
   "menu": {

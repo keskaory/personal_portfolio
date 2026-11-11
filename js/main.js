@@ -31,9 +31,10 @@ const fade = $("#fade");
 
 function fillTitleCard(site) {
   const { person, links } = site;
-  $("#title-name").textContent = person.name;
-  $("#title-school").textContent = `${person.school}. ${person.graduation}.`;
-  $("#title-line").textContent = person.line;
+  $("#title-name").textContent = person.titleName || person.name;
+  $("#title-school").textContent = person.intro || `${person.school}. ${person.graduation}.`;
+  if (person.line) $("#title-line").textContent = person.line;
+  else $("#title-line").remove();
   $("#header-school").textContent = person.school;
   const resume = linkOr(links.resume, "contents.html#resume");
   document.querySelectorAll("[data-resume]").forEach(a => (a.href = resume));

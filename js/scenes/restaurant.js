@@ -17,6 +17,7 @@ import { concrete, neonCity } from "../objects/station-textures.js";
 import { createMenu } from "../objects/menu.js";
 import { makeHandle, pose } from "../core/handling.js";
 import { seeded } from "../objects/textures.js";
+import { contactShadow, roughnessMap } from "../objects/surface.js";
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const TABLE_Y = 0.74;
@@ -561,7 +562,7 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   // ---- room: window wall, tiled side wall painted jade above, floor, ceiling
   const tiles = new THREE.MeshStandardMaterial({ map: wallTiles(), roughness: 0.3 });
   const dark = new THREE.MeshStandardMaterial({ map: concrete("#2c2a27", 413), roughness: 0.9 });
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), new THREE.MeshStandardMaterial({ color: "#2e2823", roughness: 0.45 }));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), new THREE.MeshStandardMaterial({ color: "#2e2823", roughness: 0.5, roughnessMap: roughnessMap(431, { wear: 0.9, repeat: [3, 3] }) }));
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   scene.add(floor);
@@ -605,7 +606,7 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   scene.add(hatchLight);
 
   // ---- the table and the booths
-  const top = new THREE.Mesh(new RoundedBoxGeometry(0.92, 0.03, 0.64, 2, 0.01), new THREE.MeshStandardMaterial({ map: formica(), roughness: 0.28 }));
+  const top = new THREE.Mesh(new RoundedBoxGeometry(0.92, 0.03, 0.64, 2, 0.01), new THREE.MeshStandardMaterial({ map: formica(), roughness: 0.36, roughnessMap: roughnessMap(433, { wear: 1 }) })); // wiped smooth where plates go
   top.position.set(-0.55, TABLE_Y - 0.015, 0);
   top.receiveShadow = top.castShadow = true;
   scene.add(top);
@@ -663,6 +664,7 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
     pipeSeat.position.set(-0.52, 0.505, z - s * 0.245);
     scene.add(pipeSeat);
     scene.add(box(1.06, 0.4, 0.44, dark, -0.52, 0.2, z));
+    scene.add(contactShadow(-0.52, 0, z, 1.06, 0.48, { opacity: 0.8 }));
     // the floor in shadow under the front of the seat
     const under = new THREE.Mesh(new THREE.PlaneGeometry(1.06, 0.3), new THREE.MeshBasicMaterial({ map: creaseTex, transparent: true, opacity: 0.6, depthWrite: false }));
     under.rotation.x = -Math.PI / 2;
@@ -791,7 +793,8 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 1.0, 6), new THREE.MeshBasicMaterial({ color: "#0b0b0b" }));
   cord.position.set(-0.55, 2.25, 0);
   scene.add(cord);
-  const pendant = new THREE.SpotLight("#ffc283", 7, 3.5, 0.85, 0.65, 1.5);
+  // the scene's key: a tight warm pool on the table, the room falling off around it
+  const pendant = new THREE.SpotLight("#ffc283", 9.5, 3.5, 0.72, 0.6, 1.6);
   pendant.position.set(-0.55, 1.66, 0);
   pendant.target.position.set(-0.55, TABLE_Y, 0);
   pendant.castShadow = true;
@@ -799,7 +802,7 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   pendant.shadow.bias = -0.0003;
   pendant.shadow.radius = 4;
   scene.add(pendant, pendant.target);
-  const room = new THREE.PointLight("#d4efe3", 3.2, 6, 1.5);  // tube light over the counter, behind us
+  const room = new THREE.PointLight("#d4efe3", 1.6, 6, 1.6);  // tube light over the counter, behind us: a cool rim, not a fill
   room.position.set(1.6, 2.4, 0.6);
   scene.add(room);
   const street = new THREE.SpotLight("#7fc9bb", 7, 6, 0.6, 1, 1.4);  // the street through the window
@@ -818,7 +821,7 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   car.position.set(-3.5, 1.2, -3);
   car.target.position.set(0.5, 1.2, -1.2);
   scene.add(car, car.target);
-  scene.add(new THREE.HemisphereLight("#3a3128", "#0c0a08", 0.8));
+  scene.add(new THREE.HemisphereLight("#3a3128", "#0c0a08", 0.38));
   const attention = new THREE.SpotLight("#ffe7cc", 0, 3, 0.2, 1, 2);
   attention.position.set(0.3, 1.6, 0.5);
   scene.add(attention, attention.target);

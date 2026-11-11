@@ -9,6 +9,7 @@
 import * as THREE from "three";
 import { platformTiles, tactileStrip, concrete, gravel, vendingFront, ledBoard, ticketTexture, routeMap, stationSign, neonCity } from "../objects/station-textures.js";
 import { createTrain } from "../objects/train.js";
+import { contactShadow, roughnessMap } from "../objects/surface.js";
 import { createLetter } from "../objects/paper.js";
 import { makeHandle, pose } from "../core/handling.js";
 import { linkOr } from "../lib/content.js";
@@ -88,7 +89,8 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   scene.background = new THREE.Color("#06100f");
   scene.fog = new THREE.FogExp2("#0b1917", 0.026);
 
-  const tiles = new THREE.MeshStandardMaterial({ map: platformTiles(), roughness: 0.2, metalness: 0.0 });
+  // the platform is wet in patches: the roughness map puts near-mirror pools among duller tiles
+  const tiles = new THREE.MeshStandardMaterial({ map: platformTiles(), roughness: 0.55, roughnessMap: roughnessMap(301, { wet: 1, repeat: [6, 1] }), metalness: 0.0 });
   const strip = new THREE.MeshStandardMaterial({ map: tactileStrip(), roughness: 0.6 });
   const wall = new THREE.MeshStandardMaterial({ map: concrete("#46504b", 305), roughness: 0.85 });
   const ceiling = new THREE.MeshStandardMaterial({ color: "#1e2524", roughness: 0.9 });
@@ -193,7 +195,7 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   key.shadow.bias = -0.0004;
   key.shadow.radius = 4;
   scene.add(key, key.target);
-  scene.add(new THREE.HemisphereLight("#2a4540", "#0b0d0c", 1.0));
+  scene.add(new THREE.HemisphereLight("#2a4540", "#0b0d0c", 0.45)); // little fill: the practical lights carry the scene
   const cityGlow = new THREE.DirectionalLight("#ff9a6a", 0.35); // the street's sodium and sign light from across the tracks
   cityGlow.position.set(-4, 3, 20);
   scene.add(cityGlow);
@@ -206,7 +208,7 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   front.position.set(0, 0.95, 0.372);
   vm.add(front);
   scene.add(vm);
-  const vmLight = new THREE.PointLight("#ffd29a", 7, 5, 1.5);
+  const vmLight = new THREE.PointLight("#ffd29a", 8, 4.5, 1.6);
   vmLight.position.set(4.6, 1.2, -2.95);
   scene.add(vmLight);
   const vmGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 2.6), new THREE.MeshBasicMaterial({ map: glowTex, color: "#ffcf96", transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8 }));
@@ -223,6 +225,8 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
     scene.add(box(0.05, 0.45, 0.4, steel, benchX + dx, 0.225, benchZ));
     scene.add(box(0.05, 0.42, 0.04, steel, benchX + dx, 0.66, benchZ - 0.24));
   });
+  scene.add(contactShadow(benchX, 0, benchZ - 0.05, 1.9, 0.5, { opacity: 0.7 }));
+  scene.add(contactShadow(4.6, 0, -3.72, 1.0, 0.75, { opacity: 0.75 }));
   const letter = new THREE.Group();
   letter.add(createLetter(person, true));
   scene.add(letter);

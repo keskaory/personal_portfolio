@@ -10,6 +10,8 @@ import * as THREE from "three";
 import { seeded } from "./textures.js";
 import { rainWindow } from "./rain-window.js";
 import { neonCity } from "./station-textures.js";
+import { roughnessMap } from "./surface.js";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const CAR = 20, GAP = 0.6, HEIGHT = 3.2, WIDTH = 2.9, BOTTOM = -0.6;
@@ -31,59 +33,94 @@ function texture(c, srgb = true) {
   return t;
 }
 
-// the outside of one car, with an alpha mask that opens the windows and the doorways
+// The outside of one car, after the reference photos: brushed stainless, a red band
+// under the roof, ribbed panels below the windows, deep black gaskets round the
+// windows, doors set back in dark frames. Alongside the colour it draws a normal
+// map (the ribs and seams catch the light), the alpha that opens windows and
+// doorways, the emissive door lamps, and the pools the lit windows throw on the platform.
 function carSide(seed) {
   const rand = seeded(seed);
   const [c, ctx] = canvas(W, H);
   const [a, ax] = canvas(W, H);
   const [e, ex] = canvas(W, H);
   const [wn, wx] = canvas(W, H);
+  const [n, nx] = canvas(W, H);
   wx.fillStyle = "#fff"; wx.fillRect(0, 0, W, H);
   ax.fillStyle = "#fff"; ax.fillRect(0, 0, W, H);
   ex.fillStyle = "#000"; ex.fillRect(0, 0, W, H);
+  nx.fillStyle = "rgb(128,128,255)"; nx.fillRect(0, 0, W, H);
+  // stainless, brushed along the car's length, a little darker toward the sill
   const body = ctx.createLinearGradient(0, 0, 0, H);
-  body.addColorStop(0, "#b9bdbd"); body.addColorStop(0.5, "#a3a8a8"); body.addColorStop(1, "#7f8485");
+  body.addColorStop(0, "#c3c6c4"); body.addColorStop(0.55, "#aeb2b1"); body.addColorStop(1, "#8d9191");
   ctx.fillStyle = body;
   ctx.fillRect(0, 0, W, H);
-  for (let i = 0; i < 900; i++) { ctx.fillStyle = `rgba(255,255,255,${rand() * 0.05})`; ctx.fillRect(rand() * W, rand() * H, 40 + rand() * 120, 1); }
-  ctx.fillStyle = "rgba(0,0,0,0.22)";
-  for (let x = 0; x < W; x += 205) ctx.fillRect(x, 0, 2, H);
-  ctx.fillStyle = "#b8231f";
-  ctx.fillRect(0, y2c(0.78), W, y2c(0.62) - y2c(0.78));
-  ctx.fillStyle = "rgba(255,255,255,0.18)";
-  ctx.fillRect(0, y2c(0.78), W, 2);
+  for (let i = 0; i < 2200; i++) { ctx.fillStyle = `rgba(${rand() < 0.5 ? "255,255,255" : "0,0,0"},${rand() * 0.045})`; ctx.fillRect(rand() * W, rand() * H, 30 + rand() * 160, 1); }
+  // panel seams: a dark line and a raised edge in the normal map
+  for (let x = 0; x < W; x += 1.6 * PX) {
+    ctx.fillStyle = "rgba(0,0,0,0.28)"; ctx.fillRect(x, 0, 2, H);
+    nx.fillStyle = "rgb(90,128,255)"; nx.fillRect(x - 1, 0, 1, H); nx.fillStyle = "rgb(166,128,255)"; nx.fillRect(x + 2, 0, 1, H);
+  }
+  // the red band under the roof, with a thin dark line beneath it
+  ctx.fillStyle = "#a8221b"; ctx.fillRect(0, y2c(2.5), W, y2c(2.22) - y2c(2.5));
+  ctx.fillStyle = "rgba(255,255,255,0.14)"; ctx.fillRect(0, y2c(2.5), W, 2);
+  ctx.fillStyle = "#2a2c2c"; ctx.fillRect(0, y2c(2.22), W, 4);
+  // ribbed lower panels: each rib a highlight over a shadow, and a slope in the normal map
+  for (let y = y2c(0.78); y < y2c(0.06); y += 7) {
+    ctx.fillStyle = "rgba(255,255,255,0.16)"; ctx.fillRect(0, y, W, 2);
+    ctx.fillStyle = "rgba(0,0,0,0.2)"; ctx.fillRect(0, y + 4, W, 2);
+    nx.fillStyle = "rgb(128,176,255)"; nx.fillRect(0, y, W, 3);
+    nx.fillStyle = "rgb(128,84,255)"; nx.fillRect(0, y + 4, W, 3);
+  }
+  ctx.fillStyle = "#3a3d3d"; ctx.fillRect(0, y2c(0.82), W, 4); // the rubbing strip above the ribs
   const doors = DOORS.map(d => (d + CAR / 2) * PX);
   const dw = DOOR_W * PX;
-  const winTop = y2c(1.9), winBot = y2c(0.86);
+  const winTop = y2c(1.9), winBot = y2c(0.9);
   let x = 0.5 * PX;
-  const spans = [];
+  const spans = [], windows = [];
   doors.forEach(d => { spans.push([x, d - dw / 2 - 0.35 * PX]); x = d + dw / 2 + 0.35 * PX; });
   spans.push([x, W - 0.5 * PX]);
   spans.forEach(([s0, s1]) => {
     for (let k = s0; k < s1 - 20; k += 1.6 * PX) {
-      const w = Math.min(1.45 * PX, s1 - k);
+      const w = Math.min(1.42 * PX, s1 - k);
       if (w < 40) continue;
-      // a rubber gasket round each pane, then the opening
-      ctx.fillStyle = "#2a2e2e";
-      ctx.beginPath(); ctx.roundRect(k - 5, winTop - 5, w + 10, winBot - winTop + 10, 12); ctx.fill();
-      ax.fillStyle = "#000";
-      ax.beginPath(); ax.roundRect(k, winTop, w, winBot - winTop, 9); ax.fill();
-      wx.fillStyle = "#000";
-      wx.beginPath(); wx.roundRect(k, winTop, w, winBot - winTop, 9); wx.fill();
+      windows.push([k, w]);
+      // a thick black rubber gasket, with a shadow on the steel below it where the window is set in
+      ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.beginPath(); ctx.roundRect(k - 9, winTop - 6, w + 18, winBot - winTop + 18, 16); ctx.fill();
+      ctx.fillStyle = "#121414"; ctx.beginPath(); ctx.roundRect(k - 8, winTop - 8, w + 16, winBot - winTop + 16, 16); ctx.fill();
+      nx.fillStyle = "rgb(128,100,255)"; nx.beginPath(); nx.roundRect(k - 8, winBot + 4, w + 16, 6, 3); nx.fill();
+      [ax, wx].forEach(t => { t.fillStyle = "#000"; t.beginPath(); t.roundRect(k, winTop, w, winBot - winTop, 11); t.fill(); });
     }
   });
   doors.forEach(d => {
     const top = y2c(DOOR_H + 0.02);
-    ctx.fillStyle = "#3b4040";
-    ctx.fillRect(d - dw / 2 - 6, top - 6, dw + 12, y2c(0) - top + 6);
-    ax.fillStyle = "#000";
-    ax.fillRect(d - dw / 2, top, dw, y2c(0.0) - top);
-    // the amber lamp over each door, lit in the emissive pass
+    // the doorway's dark frame, a sill plate at the foot
+    ctx.fillStyle = "#1d2020"; ctx.fillRect(d - dw / 2 - 12, top - 12, dw + 24, y2c(0) - top + 12);
+    ctx.fillStyle = "#8c9090"; ctx.fillRect(d - dw / 2 - 12, y2c(0.03), dw + 24, 4);
+    nx.fillStyle = "rgb(84,128,255)"; nx.fillRect(d - dw / 2 - 12, top, 4, y2c(0) - top);
+    nx.fillStyle = "rgb(172,128,255)"; nx.fillRect(d + dw / 2 + 8, top, 4, y2c(0) - top);
+    ax.fillStyle = "#000"; ax.fillRect(d - dw / 2, top, dw, y2c(0.0) - top);
     [ctx, ex].forEach(t => { t.fillStyle = "#ffb347"; t.fillRect(d - 9, y2c(2.12), 18, 7); });
   });
-  // the far-side doors from inside have tall windows of their own
   doors.forEach(d => [-1, 1].forEach(sg => { wx.fillStyle = "#000"; wx.beginPath(); wx.roundRect(d + sg * dw * 0.25 - 0.17 * PX, y2c(1.85), 0.34 * PX, y2c(1.02) - y2c(1.85), 8); wx.fill(); }));
-  return { map: texture(c), alphaMap: texture(a, false), emissiveMap: texture(e), windowMask: texture(wn, false) };
+  // the light the windows and open doorways throw down onto the platform: soft trapezoids,
+  // brightest at the edge and spreading as they fall away (drawn mirrored to match the car)
+  const [p, px] = canvas(1024, 256);
+  const sx = 1024 / W;
+  px.filter = "blur(4px)"; // soft edges, but the dark between windows survives
+  const pool = (x0, w, strength) => {
+    const xa = (W - x0 - w) * sx, wa = w * sx;
+    const g = px.createLinearGradient(0, 256, 0, 0);
+    g.addColorStop(0, `rgba(255,255,255,${strength})`); g.addColorStop(1, "rgba(255,255,255,0)");
+    px.fillStyle = g;
+    px.beginPath(); px.moveTo(xa + 4, 256); px.lineTo(xa + wa - 4, 256); px.lineTo(xa + wa * 1.08, 0); px.lineTo(xa - wa * 0.08, 0); px.closePath(); px.fill();
+  };
+  windows.forEach(([k, w]) => pool(k, w, 0.7));
+  doors.forEach(d => pool(d - dw / 2, dw, 1));
+  const pools = new THREE.CanvasTexture(p);
+  pools.colorSpace = THREE.SRGBColorSpace;
+  const normal = new THREE.CanvasTexture(n);
+  normal.anisotropy = 8;
+  return { map: texture(c), alphaMap: texture(a, false), emissiveMap: texture(e), windowMask: texture(wn, false), normalMap: normal, pools };
 }
 
 // a door leaf: brushed steel with a tall window
@@ -113,17 +150,6 @@ function cabFace() {
   return { map: texture(c), emissiveMap: texture(e) };
 }
 
-// the lit windows reflected in the wet platform (the canvas's bottom edge lies along the platform edge)
-function reflection() {
-  const [c, ctx] = canvas(1024, 128);
-  const g = ctx.createLinearGradient(0, 0, 0, 128);
-  g.addColorStop(0, "rgba(255,255,255,0)");
-  g.addColorStop(1, "rgba(255,255,255,1)");
-  ctx.filter = "blur(14px)"; // soft: sharp streaks sliding past read as flicker
-  ctx.globalAlpha = 0.4;
-  for (let x = 30; x < 1000; x += 82) { ctx.fillStyle = g; ctx.fillRect(x, 0, 62, 128); }
-  return texture(c);
-}
 function glowSprite(colour) {
   const [c, ctx] = canvas(128, 128);
   const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
@@ -144,11 +170,11 @@ function gradient(w, h, stops, extra) {
   if (extra) extra(ctx, w, h);
   return texture(c);
 }
-const wallTex = gradient(64, 256, [[0, "#e4ebe6"], [0.45, "#c3ccc6"], [1, "#7f8884"]]);
+const wallTex = gradient(64, 256, [[0, "#efe4cc"], [0.45, "#cdbfa2"], [1, "#7d7262"]]);
 const floorTex = gradient(64, 256, [[0, "#2c2f2e"], [0.22, "#3d403f"], [0.5, "#4a4d4b"], [0.78, "#3d403f"], [1, "#2c2f2e"]], (ctx, w, h) => {
   for (let i = 0; i < 900; i++) { ctx.fillStyle = `rgba(${Math.random() < 0.5 ? "0,0,0" : "255,255,255"},${Math.random() * 0.08})`; ctx.fillRect(Math.random() * w, Math.random() * h, 1, 1); }
 });
-const seatTex = gradient(32, 64, [[0, "#3b8282"], [1, "#1f4f50"]]);
+const seatTex = gradient(32, 64, [[0, "#d8692e"], [1, "#8a3a18"]]); // the orange of the seats in the photos
 const lit = (opts, glow) => new THREE.MeshLambertMaterial({ ...opts, emissive: new THREE.Color(1, 1, 1), emissiveMap: opts.map, emissiveIntensity: glow });
 
 function interior(seed, lineStrip, brightness) {
@@ -157,7 +183,7 @@ function interior(seed, lineStrip, brightness) {
   const M = {
     wall: lit({ map: wallTex }, 0.3 * brightness), floor: lit({ map: floorTex }, 0.16 * brightness), seat: lit({ map: seatTex }, 0.22 * brightness),
     steel: new THREE.MeshLambertMaterial({ color: "#b5bdbb", emissive: new THREE.Color("#9aa3a1").multiplyScalar(0.3 * brightness) }),
-    tube: new THREE.MeshBasicMaterial({ color: new THREE.Color("#eef8f2").multiplyScalar(0.95 + 0.15 * brightness) }),
+    tube: new THREE.MeshBasicMaterial({ color: new THREE.Color("#fff0d6").multiplyScalar(0.95 + 0.15 * brightness) }),
     frame: new THREE.MeshLambertMaterial({ color: "#d7ddd8", emissive: new THREE.Color("#b9c2bd").multiplyScalar(0.25 * brightness) }),
   };
   // ceiling, far wall (with its window openings, see below) and the two ends; the
@@ -234,13 +260,14 @@ function interior(seed, lineStrip, brightness) {
 
 export function createTrain({ cars = 4, lineStrip = null } = {}) {
   const g = new THREE.Group();
-  const roof = new THREE.MeshStandardMaterial({ color: "#5f6464", metalness: 0.5, roughness: 0.6 });
+  const roof = new THREE.MeshStandardMaterial({ color: "#7e8382", metalness: 0.6, roughness: 0.55 });
   const under = new THREE.MeshStandardMaterial({ color: "#151717", roughness: 0.8 });
   const steel = new THREE.MeshStandardMaterial({ color: "#9ea3a3", metalness: 0.55, roughness: 0.45 });
   const leafTex = doorLeaf();
   const leafMat = new THREE.MeshStandardMaterial({ map: leafTex.map, alphaMap: leafTex.alphaMap, alphaTest: 0.5, metalness: 0.4, roughness: 0.5, side: THREE.DoubleSide });
-  const glass = new THREE.MeshStandardMaterial({ color: "#d8ece6", roughness: 0.04, metalness: 0.2, transparent: true, opacity: 0.1, depthWrite: false });
-  const hits = [], leaves = [], rains = [];
+  // tinted, reflective glass: the station's tubes slide across it, the interior shows through
+  const glass = new THREE.MeshStandardMaterial({ color: "#1e2826", roughness: 0.05, metalness: 0.1, envMapIntensity: 1.6, transparent: true, opacity: 0.2, depthWrite: false });
+  const hits = [], leaves = [], rains = [], pools = [];
   for (let k = 0; k < cars; k++) {
     const cx = CAR / 2 + k * (CAR + GAP);
     const car = new THREE.Group();
@@ -248,17 +275,19 @@ export function createTrain({ cars = 4, lineStrip = null } = {}) {
     // the far wall, roof and underframe from outside (the platform side is the textured skin below)
     const farWall = new THREE.Mesh(new THREE.BoxGeometry(CAR, HEIGHT - 0.3, 0.06), steel);
     farWall.position.set(0, BOTTOM + (HEIGHT - 0.3) / 2, WIDTH / 2 + 0.03); // outside the rain glass
-    const top = new THREE.Mesh(new THREE.BoxGeometry(CAR, 0.3, WIDTH - 0.3), roof);
-    top.position.y = BOTTOM + HEIGHT - 0.15;
+    const top = new THREE.Mesh(new RoundedBoxGeometry(CAR, 0.34, WIDTH - 0.03, 3, 0.15), roof);
+    top.position.y = BOTTOM + HEIGHT + 0.02; // its rounded edge rises just above the side's top
     const bogie = new THREE.Mesh(new THREE.BoxGeometry(CAR - 1, 0.5, WIDTH - 0.5), under);
     bogie.position.y = BOTTOM - 0.25;
     const skirt = new THREE.Mesh(new THREE.BoxGeometry(CAR, 0.6, WIDTH - 0.04), steel);
     skirt.position.y = BOTTOM + 0.3;
     car.add(farWall, top, bogie, skirt);
     const s = carSide(41 + k * 16);
+    pools.push(s.pools);
     const side = new THREE.Mesh(new THREE.PlaneGeometry(CAR, HEIGHT), new THREE.MeshStandardMaterial({
       map: s.map, alphaMap: s.alphaMap, alphaTest: 0.5, emissiveMap: s.emissiveMap, emissive: new THREE.Color(1, 1, 1), emissiveIntensity: 1.2,
-      metalness: 0.35, roughness: 0.6, side: THREE.DoubleSide,
+      normalMap: s.normalMap, normalScale: new THREE.Vector2(0.7, 0.7), roughnessMap: roughnessMap(70 + k, { wear: 0.8 }),
+      metalness: 0.5, roughness: 0.36, envMapIntensity: 1.5, side: THREE.DoubleSide, // satin steel: catches the platform light rather than mirroring the dark
     }));
     side.position.set(0, BOTTOM + HEIGHT / 2, -WIDTH / 2);
     side.rotation.y = Math.PI;
@@ -281,7 +310,7 @@ export function createTrain({ cars = 4, lineStrip = null } = {}) {
     // the door leaves, in their openings; they slide apart
     DOORS.forEach(d => [-1, 1].forEach(sgn => {
       const leaf = new THREE.Mesh(new THREE.BoxGeometry(DOOR_W / 2, DOOR_H, 0.03), leafMat);
-      leaf.position.set(-d + sgn * DOOR_W / 4, DOOR_H / 2 + 0.01, -WIDTH / 2 + 0.06);
+      leaf.position.set(-d + sgn * DOOR_W / 4, DOOR_H / 2 + 0.01, -WIDTH / 2 + 0.09); // set back in the doorway
       leaf.userData = { home: leaf.position.x, sgn };
       car.add(leaf);
       leaves.push(leaf);
@@ -310,20 +339,21 @@ export function createTrain({ cars = 4, lineStrip = null } = {}) {
   g.add(headlight, headlight.target);
   // its light on the platform, and its windows in the puddles
   const spill = [12, 26].map(x => {
-    const l = new THREE.PointLight("#e9f6ef", 9, 9, 1.4);
+    const l = new THREE.PointLight("#ffdcae", 9, 9, 1.4);
     l.position.set(x, 2.2, -WIDTH / 2 - 1.6);
     g.add(l);
     return l;
   });
-  const refl = new THREE.Mesh(new THREE.PlaneGeometry(cars * (CAR + GAP), 1.9), new THREE.MeshBasicMaterial({
-    map: reflection(), color: "#cfe9df", transparent: true, opacity: 0.26, blending: THREE.AdditiveBlending, depthWrite: false,
-    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8,
-  }));
-  refl.material.map.wrapS = THREE.RepeatWrapping;
-  refl.material.map.repeat.set(cars * 1.9, 1);
-  refl.rotation.x = -Math.PI / 2;
-  refl.position.set(cars * (CAR + GAP) / 2, 0.009, -WIDTH / 2 - 1.5);
-  g.add(refl);
+  // each car's windows and doorways throw their own pools of warm light on the wet platform
+  pools.forEach((tex, k) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(CAR, 1.7), new THREE.MeshBasicMaterial({
+      map: tex, color: new THREE.Color("#ffc985").multiplyScalar(1.3), transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false,
+      polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8,
+    }));
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(CAR / 2 + k * (CAR + GAP), 0.009, -WIDTH / 2 - 0.5 - 0.85);
+    g.add(m);
+  });
 
   let doors = 0, doorTarget = 0, lamp = 0;
   return {

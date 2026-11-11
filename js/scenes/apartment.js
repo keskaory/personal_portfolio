@@ -20,6 +20,7 @@ import { createBottle } from "../objects/bottle.js";
 import { plasterTexture, woodTexture, clothTexture, seeded } from "../objects/textures.js";
 import { drawPlaceholder } from "../lib/placeholder-art.js";
 import { urls, linkOr } from "../lib/content.js";
+import { contactShadow, roughnessMap } from "../objects/surface.js";
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 function box(w, h, d, mat, x, y, z, cast = true) {
@@ -185,7 +186,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
   floorTex.repeat.set(3, 7);
   floorTex.rotation = Math.PI / 2;
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 4.3), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.5 }));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 4.3), new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.55, roughnessMap: roughnessMap(531, { wear: 0.8, repeat: [2, 2] }) }));
   floor.rotation.x = -Math.PI / 2;
   floor.position.set(0, 0, 0.25);
   floor.receiveShadow = true;
@@ -252,14 +253,16 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   street.shadow.mapSize.set(1024, 1024);
   street.shadow.bias = -0.0003;
   scene.add(street, street.target);
-  scene.add(new THREE.HemisphereLight("#5e5040", "#1c160f", 1.6));
-  const fill = new THREE.PointLight("#ffc890", 3.2, 5, 1.4); // the hall light by the door, falling across the coats
+  scene.add(new THREE.HemisphereLight("#5e5040", "#1c160f", 0.75)); // little fill: the lamp, the window and the TV carry the room
+  const fill = new THREE.PointLight("#ffc890", 2.0, 4.5, 1.6); // the hall light by the door, falling across the coats
   fill.position.set(-1.0, 2.3, 1.45);
   scene.add(fill);
   const attention = new THREE.SpotLight("#ffe7cc", 0, 4, 0.22, 1, 2);
   attention.position.set(1.2, 1.9, 1.2);
   scene.add(attention, attention.target);
 
+  // contact shadows where furniture meets the floor
+  [[1.6, -0.88, 1.0, 2.1, 0], [0.91, -1.64, 0.42, 0.42, 0], [-1.8, 0.02, 0.5, 0.82, 0], [-1.93, -1.28, 0.36, 1.1, 0], [-0.42, -0.32, 0.9, 0.55, 0.045]].forEach(([x, z, w, d, y]) => scene.add(contactShadow(x, y, z, w, d, { opacity: 0.6 }))); // the last is the table, on the tatami
   const artifacts = [];
   const add = a => { a.focus = new THREE.Vector3(); (a.hits || [a.hit]).forEach(h => (h.userData.id = a.id)); artifacts.push(a); return a; };
   const shotAt = (target, from, side = "right", fov = 38) => portrait => portrait
@@ -331,7 +334,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.03, 20), new THREE.MeshStandardMaterial({ color: "#2b2621", roughness: 0.4 }));
   lampBase.position.set(nsX - 0.08, NS_Y + 0.015, nsZ - 0.08);
   scene.add(lampShade, lampBase);
-  const lamp = new THREE.PointLight("#ffb46a", 7, 6, 1.4);
+  const lamp = new THREE.PointLight("#ffb46a", 9, 5.5, 1.6); // the room's key: warm, falling off across the bed and the tatami
   lamp.position.set(nsX - 0.08, NS_Y + 0.32, nsZ - 0.02);
   scene.add(lamp);
   // the 100 ml at the back, the two 50 ml in front of it

@@ -60,5 +60,28 @@
   "menu": {
     "cover": "Menu",
     "line": "Projects · Experience · Resume"
+  },
+  "route": {
+    "_note": "The K line on the station's map, in order. 'stop' ties a station to a scene stop id; the others are places the line passes through.",
+    "line": "K",
+    "name": "K Line",
+    "colour": "#c8261f",
+    "stops": [
+      {
+        "name": "San Leandro",
+        "stop": "station"
+      },
+      {
+        "name": "Oakland",
+        "stop": "restaurant"
+      },
+      {
+        "name": "Alameda"
+      },
+      {
+        "name": "Berkeley",
+        "stop": "apartment"
+      }
+    ]
   }
 }

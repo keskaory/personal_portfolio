@@ -1,13 +1,14 @@
-// Who I Am, 11:40 pm. An elevated platform under a canopy, still running:
-// the last train pulls in as you arrive and waits with its doors lit, the
-// departure board ticks over, a tube stutters, rain falls past the canopy,
-// the city's signs smear colour beyond the tracks. The route map on the back
-// wall shows the night's three stops. Leaving: you walk to the train's door.
+// Who I Am, 11:40 pm, San Leandro on the K line. An elevated platform, still
+// running: the last train toward Berkeley pulls in as you arrive, opens its
+// doors, and waits with people inside; the board says where it's going and
+// what it's doing; a tube stutters; rain falls past the canopy. The line map
+// on the back wall is the places I grew up. Leaving: you step on, the doors
+// close, and the train pulls out with you aboard.
 //
 // Coordinates: meters; the platform runs along x, its top at y = 0, its
 // edge at z = 0 with the tracks at +z and the back wall at z = -4.2.
 import * as THREE from "three";
-import { platformTiles, tactileStrip, concrete, gravel, vendingFront, dotBoard, ticketTexture, routeMap, neonCity } from "../objects/station-textures.js";
+import { platformTiles, tactileStrip, concrete, gravel, vendingFront, ledBoard, ticketTexture, routeMap, neonCity } from "../objects/station-textures.js";
 import { createTrain } from "../objects/train.js";
 import { createLetter } from "../objects/paper.js";
 import { makeHandle, pose } from "../core/handling.js";
@@ -41,7 +42,7 @@ function rain(count = 1800) {
   const pos = new Float32Array(count * 2 * 3);
   const end = new Float32Array(count * 2);
   for (let i = 0; i < count; i++) {
-    const x = (Math.random() - 0.5) * 44, y = Math.random() * 7, z = 0.7 + Math.random() * 9;
+    const x = (Math.random() - 0.5) * 44, y = Math.random() * 7, z = 3.6 + Math.random() * 6.2; // beyond the train, so none falls inside it
     pos.set([x, y, z, x, y, z], i * 6);
     end[i * 2 + 1] = 1;
   }
@@ -75,15 +76,13 @@ function rain(count = 1800) {
   return new THREE.LineSegments(g, mat);
 }
 
-// the night's stops, as the route map shows them
-const ROUTE = [
-  { name: "Station", note: "Who I am", href: "#station" },
-  { name: "Restaurant", note: "Projects · Experience", href: "#restaurant" },
-  { name: "Home", note: "Beyond the work", href: "#apartment" },
-];
 
 export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   const { person, links } = site;
+  const route = site.route || { line: "K", stops: [{ name: "Station", stop: "station" }] };
+  const here = Math.max(0, route.stops.findIndex(s => s.stop === "station"));
+  const destination = route.stops[route.stops.length - 1].name;
+  const nextStop = route.stops[here + 1]?.name || destination;
   scene.background = new THREE.Color("#06100f");
   scene.fog = new THREE.FogExp2("#0b1917", 0.026);
 
@@ -119,7 +118,7 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   bed.position.set(0, -1.15, 2.1);
   bed.receiveShadow = true;
   scene.add(bed);
-  const rail = new THREE.MeshStandardMaterial({ color: "#a4a8a4", metalness: 0.95, roughness: 0.18 });
+  const rail = new THREE.MeshStandardMaterial({ color: "#9a9e9a", metalness: 0.7, roughness: 0.42 }); // not mirror-bright: thin bright lines shimmer
   [1.25, 2.75].forEach(z => scene.add(box(44, 0.12, 0.07, rail, 0, -1.03, z, { cast: false })));
   const sleepers = new THREE.InstancedMesh(new THREE.BoxGeometry(0.22, 0.08, 2.4), new THREE.MeshStandardMaterial({ color: "#3a3631", roughness: 0.9 }), 72);
   for (let i = 0; i < 72; i++) sleepers.setMatrixAt(i, new THREE.Matrix4().makeTranslation(-21.5 + i * 0.6, -1.1, 2.0));
@@ -223,25 +222,25 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   const ticketHit = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.14, 0.28), hitMat);
   ticket.add(ticketHit);
 
-  // ---- the route map, backlit, on the back wall beside the bench
-  const mapX = -1.0, mapY = 1.72;
-  const mapFrame = box(1.62, 0.98, 0.07, new THREE.MeshStandardMaterial({ color: "#2a2f2d", metalness: 0.5, roughness: 0.4 }), mapX, mapY, -4.165, { cast: false });
+  // ---- the K line map, backlit, on the back wall beside the bench
+  const mapX = -1.0, mapY = 1.62;
+  const mapFrame = box(1.87, 0.87, 0.07, new THREE.MeshStandardMaterial({ color: "#2a2f2d", metalness: 0.5, roughness: 0.4 }), mapX, mapY, -4.165, { cast: false });
   scene.add(mapFrame);
-  const mapFace = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.88), new THREE.MeshBasicMaterial({ map: routeMap(ROUTE, 0), color: new THREE.Color(1.15, 1.15, 1.12) }));
+  const mapFace = new THREE.Mesh(new THREE.PlaneGeometry(1.75, 0.75), new THREE.MeshBasicMaterial({ map: routeMap(route, here), color: new THREE.Color(1.12, 1.12, 1.1) }));
   mapFace.position.set(mapX, mapY, -4.128);
   scene.add(mapFace);
 
-  // ---- the departure board, hanging from the canopy: the time, ticking over
+  // ---- the departure board, hanging from the canopy: the line, where it's going, what it's doing
   const board = new THREE.Group();
-  board.position.set(-0.9, 2.55, -1.4);
+  board.position.set(-0.9, 2.5, -1.4);
   board.rotation.y = -Math.PI / 2 + 0.15;
-  board.add(box(1.3, 0.28, 0.1, new THREE.MeshStandardMaterial({ color: "#111312", roughness: 0.6 }), 0, 0, 0));
-  const times = [" 23:40", " 23:41", " 23:42", " 23:43", " 23:44", " 23:45"].map(dotBoard);
-  const blank = dotBoard("      ");
-  const face = new THREE.Mesh(new THREE.PlaneGeometry(1.22, 0.22), new THREE.MeshBasicMaterial({ map: times[0], color: new THREE.Color(1.5, 1.5, 1.5) }));
+  board.add(box(1.6, 0.44, 0.1, new THREE.MeshStandardMaterial({ color: "#111312", roughness: 0.6 }), 0, 0, 0));
+  const say = status => ledBoard({ line: route.line, colour: route.colour, destination, status });
+  const boards = { arriving: say("ARRIVING"), open: say("DOORS OPEN"), next: say(`NEXT ${nextStop}`), closing: say("DOORS CLOSING"), blank: say("") };
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.358), new THREE.MeshBasicMaterial({ map: boards.arriving, color: new THREE.Color(1.5, 1.5, 1.5) }));
   face.position.z = 0.052;
   board.add(face);
-  [-0.5, 0.5].forEach(dx => board.add(box(0.02, 0.5, 0.02, steel, dx, 0.39, 0)));
+  [-0.6, 0.6].forEach(dx => board.add(box(0.02, 0.5, 0.02, steel, dx, 0.47, 0)));
   scene.add(board);
 
   // ---- rain past the canopy, and the last train
@@ -296,15 +295,16 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
     },
     {
       id: "station-map", stop: "rest", hit: mapFace, object: mapFace,
-      caption: "See the route",
+      caption: "Read the line map",
       examine: portrait => portrait
-        ? { side: "bottom", position: V(mapX, mapY - 0.1, -0.15), target: V(mapX, mapY - 0.62, -4.1), fov: 44 }
-        : { side: "right", position: V(mapX + 0.62, mapY - 0.02, -1.75), target: V(mapX + 0.5, mapY - 0.02, -4.1), fov: 34 },
+        ? { side: "bottom", position: V(mapX, mapY - 0.1, 0.0), target: V(mapX, mapY - 0.62, -4.1), fov: 44 }
+        : { side: "right", position: V(mapX + 0.7, mapY - 0.02, -1.6), target: V(mapX + 0.58, mapY - 0.02, -4.1), fov: 34 },
       leave: () => ({ position: V(mapX + 0.4, mapY, -3.1), target: V(mapX + 0.4, mapY, -4.1), fov: 30 }),
       panel: () => ({
-        title: "Tonight's route",
-        body: "Three stops. Projects and experience are at the restaurant; the rest is at home.",
-        actions: ROUTE.slice(1).map(r => ({ label: `${r.name}: ${r.note}`, href: r.href, internal: true })),
+        title: route.name || `${route.line} Line`,
+        meta: route.stops.map(s => s.name).join(" · "),
+        body: "The places I grew up, in order. Two of them are tonight's other stops.",
+        actions: route.stops.filter(s => s.stop && s.stop !== "station").map(s => ({ label: `Ride to ${s.name}`, href: `#${s.stop}`, internal: true })),
       }),
     },
     {
@@ -313,8 +313,8 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
       examine: doorShot,
       leave: () => ({ position: V(door - 3.2, 1.45, -2.2), target: V(door, 1.3, 0.55), fov: 36 }),
       panel: () => ({
-        title: "The last train",
-        meta: "Next stop: the restaurant",
+        title: `The last ${route.line} train`,
+        meta: `Toward ${destination}. Next stop: ${nextStop}.`,
         body: "Projects and experience, over a late bowl of noodles.",
         actions: [{ label: "Board", href: "#restaurant", internal: true }],
       }),
@@ -322,17 +322,27 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   ];
   artifacts.forEach(a => { a.focus = new THREE.Vector3(); (a.hits || [a.hit]).forEach(h => (h.userData.id = a.id)); });
 
-  // the train comes in when you arrive
-  let arriving = null;
+  // the train comes in when you arrive, then opens its doors
+  let arriving = null, ride = null, doorWait = -1, boardT = 0, speed = 0;
   const arrive = () => {
-    if (reducedMotion) { train.group.position.x = FRONT_X; arriving = null; return; }
+    ride = null; speed = 0;
+    train.openDoors(false);
+    face.material.map = boards.arriving;
+    if (reducedMotion) { train.group.position.x = FRONT_X; arriving = null; doorWait = 0; return; }
     arriving = { t: 0 };
+    doorWait = -1;
     train.group.position.x = FRONT_X + 90;
   };
   arrive();
 
-  let flicker = 0, tick = 0, minute = 0;
+  // hovering answers physically: paper lifts a little, the map's light comes up
+  const hover = { letter: 0, ticket: 0, map: 0 };
+  const homes = { letter: handles.letter, ticket: handles.ticket };
+  const homeY = { letter: seatY, ticket: seatY };
+
+  let flicker = 0;
   const restFocusPoint = V(0.6, 0.6, -2.4);
+  const inside = portrait => ({ position: V(door - 0.25, 1.55, 1.12), target: V(door - 3.6, 1.2, 2.9), fov: portrait ? 64 : 50 }); // looking down the length of the car
   return {
     artifacts,
     shots: {
@@ -340,37 +350,66 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
       restPortrait: { position: V(-6.4, 1.5, -2.6), target: V(-0.6, 1.0, -0.6), fov: 52 },
     },
     restFocus: () => restFocusPoint,
-    dof: { rest: 0.002, examine: 0.012 },
+    dof: { rest: 0.0, examine: 0.012 }, // no background blur at rest: it frayed the platform edge and softened the train
     lights: { attention },
     enter: arrive,
-    // walking to the open door
-    exitShot: portrait => ({ position: V(door - 0.1, 1.42, -0.35), target: V(door + 0.1, 1.3, 2.0), fov: portrait ? 50 : 34 }),
-    update(t, dt, held) {
+    keepsCamera: true,
+    // boarding: walk to the open door, step in, the doors close, the train pulls out with you aboard
+    exit(done, { rig, portrait }) {
+      ride = { t: 0, done, rig, portrait, stage: 0 };
+      rig.go({ position: V(door - 0.15, 1.5, -1.25), target: V(door + 0.1, 1.35, 1.6), fov: 42 }, 1.3);
+    },
+    reset() { train.group.position.x = FRONT_X; arriving = null; ride = null; speed = 0; train.openDoors(false); },
+    update(t, dt, held, hovered) {
       artifacts.forEach(a => {
         if (a.handle) a.handle.update(dt, a === held, reducedMotion);
         a.object.updateMatrixWorld();
         a.focus.setFromMatrixPosition(a.object.matrixWorld);
       });
-      // the train's focus is its first door, not its far-off middle
       artifacts[3].focus.set(door, 1.3, 0.55);
+      // hover: paper lifts a centimetre, the map brightens
+      ["letter", "ticket"].forEach(k => {
+        const a = artifacts.find(x => x.id === `station-${k}`);
+        hover[k] += ((hovered === a ? 1 : 0) - hover[k]) * Math.min(1, dt * 8);
+        if (homes[k].progress === 0) a.object.position.y = homeY[k] + hover[k] * 0.012;
+      });
+      hover.map += ((hovered === artifacts[2] ? 1 : 0) - hover.map) * Math.min(1, dt * 6);
+      mapFace.material.color.setScalar(1.12 + hover.map * 0.18);
+
       drops.material.uniforms.time.value = t;
       if (arriving) {
         arriving.t += dt;
         const k = Math.min(1, arriving.t / 7);
-        train.group.position.x = FRONT_X + 90 * Math.pow(1 - k, 3); // brakes all the way in
-        if (k >= 1) arriving = null;
+        train.group.position.x = FRONT_X + 90 * Math.pow(1 - k, 3);
+        if (k >= 1) { arriving = null; doorWait = 0.6; }
       }
+      if (doorWait >= 0) { doorWait -= dt; if (doorWait < 0) { train.openDoors(true); boardT = 0; } }
+      if (ride) {
+        ride.t += dt;
+        if (ride.stage === 0 && ride.t > 1.3) { ride.stage = 1; ride.rig.go(inside(ride.portrait), 1.6); }
+        if (ride.stage === 1 && ride.t > 3.0) { ride.stage = 2; train.openDoors(false); face.material.map = boards.closing; }
+        if (ride.stage === 2 && ride.t > 3.9) { ride.stage = 3; ride.x0 = train.group.position.x; }
+        if (ride.stage === 3) {
+          speed += dt * 2.6;
+          train.group.position.x += speed * dt;
+          const dx = train.group.position.x - ride.x0;
+          const s = inside(ride.portrait);
+          s.position.x += dx; s.target.x += dx;
+          ride.rig.set(s);
+          if (ride.t > 6.3 && ride.done) { const d = ride.done; ride.done = null; d(); }
+        }
+      } else if (train.doorsOpen === 1 && !reducedMotion) {
+        // waiting with the doors open: the board alternates between the doors and the next stop
+        boardT += dt;
+        face.material.map = Math.floor(boardT / 4) % 2 ? boards.next : boards.open;
+      }
+      train.update(t, dt, { speed, reduced: reducedMotion });
       if (!reducedMotion) {
-        // the tired tube stutters now and then
         flicker -= dt;
         if (flicker < 0) flicker = 3 + Math.random() * 6;
         const off = flicker < 0.25 && Math.sin(t * 60) > 0;
         tubeTired.color.copy(tubeColour).multiplyScalar(off ? 0.35 : 2.4);
         lamps[1].intensity = off ? 2 : 10;
-        // the board ticks over every so often, with a blink as it redraws
-        tick += dt;
-        if (tick > 24) { tick = 0; minute = (minute + 1) % times.length; }
-        face.material.map = tick < 0.18 ? blank : times[minute];
       }
     },
   };

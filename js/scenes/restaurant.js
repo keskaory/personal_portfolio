@@ -724,6 +724,8 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
       rest: { position: V(0.62, 1.32, 0.44), target: V(-0.62, 1.0, -0.2), fov: 40 },
       restPortrait: { position: V(0.72, 1.42, 0.3), target: V(-0.6, 0.84, -0.08), fov: 54 },
     },
+    // arriving off the train: open close on the rain on the glass, then pull back to the table
+    entryShot: () => ({ position: V(-0.62, 1.5, 0.08), target: V(-1.05, 1.52, 0.0), fov: 34 }),
     // leaving: lift to the rain on the window, the shot the apartment opens on
     exitShot: () => ({ position: V(-0.55, 1.5, 0.05), target: V(-1.05, 1.55, 0.0), fov: 34 }),
     restFocus: () => restFocusPoint,

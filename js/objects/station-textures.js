@@ -215,54 +215,134 @@ export function ticketTexture(person, sample) {
   return tex(c);
 }
 
-// The route map in its backlit frame: one line, three stops, the one you're
-// at marked. Plain transit lettering in English; it is also the way on.
-export function routeMap(stops, here = 0) {
-  const W = 1024, H = 600;
+// A 5x7 dot-matrix alphabet for the departure board: capitals, digits, a little punctuation.
+const LED = {
+  A: ["01110","10001","10001","11111","10001","10001","10001"], B: ["11110","10001","10001","11110","10001","10001","11110"],
+  C: ["01110","10001","10000","10000","10000","10001","01110"], D: ["11110","10001","10001","10001","10001","10001","11110"],
+  E: ["11111","10000","10000","11110","10000","10000","11111"], F: ["11111","10000","10000","11110","10000","10000","10000"],
+  G: ["01110","10001","10000","10111","10001","10001","01111"], H: ["10001","10001","10001","11111","10001","10001","10001"],
+  I: ["01110","00100","00100","00100","00100","00100","01110"], J: ["00111","00010","00010","00010","00010","10010","01100"],
+  K: ["10001","10010","10100","11000","10100","10010","10001"], L: ["10000","10000","10000","10000","10000","10000","11111"],
+  M: ["10001","11011","10101","10101","10001","10001","10001"], N: ["10001","10001","11001","10101","10011","10001","10001"],
+  O: ["01110","10001","10001","10001","10001","10001","01110"], P: ["11110","10001","10001","11110","10000","10000","10000"],
+  Q: ["01110","10001","10001","10001","10101","10010","01101"], R: ["11110","10001","10001","11110","10100","10010","10001"],
+  S: ["01111","10000","10000","01110","00001","00001","11110"], T: ["11111","00100","00100","00100","00100","00100","00100"],
+  U: ["10001","10001","10001","10001","10001","10001","01110"], V: ["10001","10001","10001","10001","10001","01010","00100"],
+  W: ["10001","10001","10001","10101","10101","10101","01010"], X: ["10001","10001","01010","00100","01010","10001","10001"],
+  Y: ["10001","10001","01010","00100","00100","00100","00100"], Z: ["11111","00001","00010","00100","01000","10000","11111"],
+  "0": ["01110","10001","10011","10101","11001","10001","01110"], "1": ["00100","01100","00100","00100","00100","00100","01110"],
+  "2": ["01110","10001","00001","00010","00100","01000","11111"], "3": ["11110","00001","00001","01110","00001","00001","11110"],
+  "4": ["00010","00110","01010","10010","11111","00010","00010"], "5": ["11111","10000","11110","00001","00001","10001","01110"],
+  "6": ["00110","01000","10000","11110","10001","10001","01110"], "7": ["11111","00001","00010","00100","01000","01000","01000"],
+  "8": ["01110","10001","10001","01110","10001","10001","01110"], "9": ["01110","10001","10001","01111","00001","00010","01100"],
+  ":": ["00000","00100","00100","00000","00100","00100","00000"], "-": ["00000","00000","00000","11111","00000","00000","00000"],
+  ".": ["00000","00000","00000","00000","00000","01100","01100"], " ": ["00000","00000","00000","00000","00000","00000","00000"],
+};
+// Two rows: the line's badge and destination on top, a status line below.
+export function ledBoard({ line = "K", colour = "#c8261f", destination = "", status = "" }) {
+  const W = 704, H = 168, gap = 8, dot = 6.2;
   const [c, ctx] = cv(W, H);
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, "#f6f3ea");
-  g.addColorStop(1, "#e7e2d4");
-  ctx.fillStyle = g;
+  ctx.fillStyle = "#0a0b0a";
   ctx.fillRect(0, 0, W, H);
+  for (let x = 12; x < W - 6; x += gap) for (let y = 12; y < H - 6; y += gap) {
+    ctx.fillStyle = "#181a17"; ctx.beginPath(); ctx.arc(x, y, dot / 2, 0, Math.PI * 2); ctx.fill();
+  }
+  const row = (text, x0, y0, colourOn) => {
+    let cx = x0;
+    for (const ch of text.toUpperCase()) {
+      const g = LED[ch] || LED[" "];
+      g.forEach((r, ry) => [...r].forEach((on, k) => {
+        if (on === "1") { ctx.fillStyle = colourOn; ctx.beginPath(); ctx.arc(cx + k * gap, y0 + ry * gap, dot / 2, 0, Math.PI * 2); ctx.fill(); }
+      }));
+      cx += 6 * gap;
+    }
+  };
+  // the line badge: a lit square in the line's colour with the letter knocked out
+  ctx.fillStyle = colour;
+  ctx.fillRect(14, 14, 66, 66);
+  const g = LED[line.toUpperCase()] || LED[" "];
+  g.forEach((r, ry) => [...r].forEach((on, k) => {
+    if (on === "1") { ctx.fillStyle = "#fff3e6"; ctx.beginPath(); ctx.arc(28 + k * gap, 20 + ry * gap, dot / 2, 0, Math.PI * 2); ctx.fill(); }
+  }));
+  row(destination, 100, 20, "#ffb347");
+  row(status, 20, 100, "#ffb347");
+  return tex(c);
+}
+
+// The line diagram on the platform wall, drawn the way transit maps are: one
+// coloured line, a tick or ring for each stop, names set beside them, the two
+// ends named as termini, the stop you're at marked. Stops come from site.json.
+export function routeMap(route, hereIndex = 0) {
+  const W = 1400, H = 600;
+  const [c, ctx] = cv(W, H);
   const sans = '"Helvetica Neue", Helvetica, Arial, sans-serif';
-  ctx.fillStyle = "#1d2321";
-  ctx.font = `600 30px ${sans}`;
-  ctx.fillText("Route", 64, 84);
-  ctx.fillStyle = "#6a6e69";
-  ctx.font = `400 22px ${sans}`;
-  ctx.fillText("Tonight, in this order", 64, 118);
+  const col = route.colour || "#c8261f";
+  ctx.fillStyle = "#f4f2ec";
+  ctx.fillRect(0, 0, W, H);
+  // header strip: the line's bullet, its name, the direction
+  ctx.fillStyle = "#1b1f1e";
+  ctx.fillRect(0, 0, W, 110);
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(80, 55, 34, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#fff";
+  ctx.font = `700 40px ${sans}`;
+  ctx.textAlign = "center";
+  ctx.fillText(route.line, 80, 69);
+  ctx.textAlign = "left";
+  ctx.font = `600 38px ${sans}`;
+  ctx.fillText(route.name || `${route.line} Line`, 134, 68);
+  const stops = route.stops;
+  const end = stops[stops.length - 1].name, start = stops[0].name;
+  ctx.font = `400 26px ${sans}`;
+  ctx.fillStyle = "#c9ccc8";
+  const dir = `${start}  —  ${end}`;
+  ctx.fillText(dir, W - 60 - ctx.measureText(dir).width, 66);
   // the line
-  const y = 300, x0 = 150, x1 = W - 150;
-  ctx.strokeStyle = "#c8261f";
-  ctx.lineWidth = 16;
-  ctx.lineCap = "round";
-  ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+  const y = 330, x0 = 170, x1 = W - 170;
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 22;
+  ctx.lineCap = "butt";
+  ctx.beginPath(); ctx.moveTo(x0 - 40, y); ctx.lineTo(x1 + 40, y); ctx.stroke();
+  // terminus caps
+  [x0 - 40, x1 + 40].forEach(x => { ctx.fillStyle = col; ctx.fillRect(x - 6, y - 26, 12, 52); });
   stops.forEach((s, i) => {
     const x = x0 + (x1 - x0) * (i / (stops.length - 1));
-    ctx.fillStyle = "#ffffff";
-    ctx.strokeStyle = "#1d2321";
-    ctx.lineWidth = 7;
-    ctx.beginPath(); ctx.arc(x, y, i === here ? 26 : 19, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    if (i === here) { ctx.fillStyle = "#c8261f"; ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fill(); }
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#1d2321";
-    ctx.font = `600 34px ${sans}`;
-    ctx.fillText(s.name, x, y + 84);
-    ctx.fillStyle = "#5c615c";
-    ctx.font = `400 23px ${sans}`;
-    ctx.fillText(s.note, x, y + 120);
-    if (i === here) {
-      ctx.fillStyle = "#c8261f";
-      ctx.font = `600 21px ${sans}`;
-      ctx.fillText("YOU ARE HERE", x, y - 50);
+    const terminus = i === 0 || i === stops.length - 1;
+    const here = i === hereIndex;
+    if (terminus || s.stop) {
+      // a ring: a station with somewhere to go
+      ctx.fillStyle = "#fff"; ctx.strokeStyle = "#1b1f1e"; ctx.lineWidth = 8;
+      ctx.beginPath(); ctx.arc(x, y, 24, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    } else {
+      // a tick: a stop the line passes through
+      ctx.fillStyle = col; ctx.fillRect(x - 6, y - 40, 12, 40);
     }
+    if (here) {
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.fill();
+      // "you are here" flag above
+      ctx.fillStyle = "#1b1f1e";
+      ctx.font = `700 22px ${sans}`;
+      const t = "YOU ARE HERE";
+      const tw = ctx.measureText(t).width;
+      ctx.beginPath(); ctx.roundRect(x - tw / 2 - 14, y - 112, tw + 28, 40, 6); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x - 10, y - 72); ctx.lineTo(x + 10, y - 72); ctx.lineTo(x, y - 58); ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.fillText(t, x, y - 84);
+      ctx.textAlign = "left";
+    }
+    // names below the line, termini bold
+    ctx.fillStyle = "#1b1f1e";
+    ctx.textAlign = "center";
+    ctx.font = `${terminus ? 700 : 500} 36px ${sans}`;
+    ctx.fillText(s.name, x, y + 84);
     ctx.textAlign = "left";
   });
-  // a thin frame shadow inside the lightbox
-  ctx.strokeStyle = "rgba(0,0,0,0.12)";
-  ctx.lineWidth = 10;
-  ctx.strokeRect(5, 5, W - 10, H - 10);
+  // a footer like the small print on real maps
+  ctx.fillStyle = "#6b6f6b";
+  ctx.font = `400 22px ${sans}`;
+  ctx.fillText(`Trains every 20 min until late.  Last train toward ${end} departs 23:58.`, 60, H - 44);
+  ctx.strokeStyle = "rgba(0,0,0,0.12)"; ctx.lineWidth = 10; ctx.strokeRect(5, 5, W - 10, H - 10);
   return tex(c);
 }
 

@@ -273,7 +273,8 @@ async function main() {
     const out = shotFor(active.api, from);
     const leaving = active.api;
     const cut = () => {
-    rig.go(backOff(out, -0.06), 0.8);
+    // a scene that carried the camera out (riding the train) keeps it where it is through the dip
+    if (!leaving.keepsCamera) rig.go(backOff(out, -0.06), 0.8);
     tween(1, 0, 0.75, v => (g.exposure.value = v));
     if (!reduced) tween(1.3, 0.45, 0.75, v => (g.sweep.value = v));
     setTimeout(() => {
@@ -288,8 +289,8 @@ async function main() {
     }, reduced ? 250 : 760);
     };
     if (selected) putBack({ focus: false });
-    if (leaving.exitShot && !reduced) rig.go(leaving.exitShot(portrait()), 1.5, cut);
-    else if (leaving.exit) leaving.exit(cut);
+    if (leaving.exit && !reduced) leaving.exit(cut, { rig, portrait: portrait() }); // the scene drives its own way out
+    else if (leaving.exitShot && !reduced) rig.go(leaving.exitShot(portrait()), 1.5, cut);
     else cut();
   }
 
@@ -472,7 +473,8 @@ async function main() {
     }
     rig.parallax = mode === "examine" ? 0.004 : 0.01;
     rig.update(dt, t);
-    active.api.update(t, dt, selected);
+    // scenes also hear what is under the pointer, so things can answer it physically
+    active.api.update(t, dt, selected, mode === "rest" ? hovered : null);
 
     // focus: slowly pull to whatever is being looked at
     const subject = selected || hovered;

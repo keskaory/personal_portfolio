@@ -24,6 +24,10 @@ body:not([data-title="1"]) .title-card,
 .moving .title-card,
 .examining .title-card { opacity: 0; transform: translateY(10px); pointer-events: none; visibility: hidden; transition: opacity 0.6s ease, transform 0.6s ease, visibility 0s 0.6s; }
 
+/* the title card already says who and what: the header keeps only its links while it shows */
+.site-header .site-name, .site-header .site-school { transition: opacity 0.6s ease; }
+body[data-title="1"]:not(.moving):not(.examining) .site-header :is(.site-name, .site-school) { opacity: 0; pointer-events: none; }
+
 /* ---- chapters along the right edge */
 .chapters {
   position: fixed; z-index: 11; right: clamp(16px, 3vw, 40px); top: 50%; transform: translateY(-50%);

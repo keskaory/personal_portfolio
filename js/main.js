@@ -154,6 +154,20 @@ async function main() {
   });
 
   // ---- what is on screen for the current stop
+  // subtitles: one short line after you arrive in a new place; hover captions wait while it shows
+  const subtitleEl = $("#subtitle");
+  let subTimer = null, subOff = null;
+  function subtitle(text) {
+    clearTimeout(subTimer); clearTimeout(subOff);
+    subtitleEl.textContent = text;
+    document.body.classList.add("subtitling");
+    subtitleEl.classList.add("on");
+    subTimer = setTimeout(() => {
+      subtitleEl.classList.remove("on");
+      subOff = setTimeout(() => document.body.classList.remove("subtitling"), 700);
+    }, 4200);
+  }
+
   // once, the first time you settle somewhere without the title card: say that things can be picked up
   let hinted = false;
   try { hinted = localStorage.getItem("hint-seen") === "1"; } catch {}
@@ -162,7 +176,7 @@ async function main() {
     const at = current;
     setTimeout(() => {
       if (hinted || at !== current || document.body.classList.contains("reading")) return;
-      if (mode !== "rest" || hovered) { maybeHint(); return; } // still arriving: try again shortly
+      if (mode !== "rest" || hovered || document.body.classList.contains("subtitling")) { maybeHint(); return; } // still arriving, or a subtitle is up: try again shortly
       hinted = true;
       try { localStorage.setItem("hint-seen", "1"); } catch {}
       caption.show(matchMedia("(hover: none)").matches ? "Tap things to look closer." : "Hover over things; click to pick them up.", { hold: 5200 });
@@ -284,6 +298,9 @@ async function main() {
       const shot = shotFor(active.api, to);
       rig.set(active.api.entryShot && !reduced ? active.api.entryShot(portrait()) : backOff(shot, 0.12));
       rig.go(shot, active.api.entryShot ? 2.4 : 1.4, arrived);
+      // a line of subtitle as the new shot begins (not over the menu, which is read, not watched)
+      const landed = current;
+      if (!to.read && to.subtitle) setTimeout(() => { if (current === landed && !document.body.classList.contains("reading")) subtitle(to.subtitle); }, reduced ? 200 : 700);
       tween(0, 1, 0.9, v => (g.exposure.value = v));
       if (!reduced) tween(0.45, -0.3, 0.8, v => (g.sweep.value = v), () => (g.sweep.value = -1));
     }, reduced ? 250 : 760);

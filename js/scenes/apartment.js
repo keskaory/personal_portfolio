@@ -713,7 +713,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
     // the match cut lands here: the rain on this window, close up, before pulling back
     entryShot: () => ({ position: V(-0.3, 1.52, -1.4), target: V(-0.3, 1.52, -2.0), fov: 34 }),
     restFocus: () => restFocusPoint,
-    dof: { rest: 0.006, examine: 0.03 },
+    dof: { rest: 0.006, examine: 0.02 },
     lights: { attention },
     update(t, dt, held, hovered) {
       artifacts.forEach(a => {

@@ -1,4 +1,4 @@
-// What I've Done, 12:30 am. A narrow noodle shop: a formica table running
+// Selected Work, 12:30 am. A narrow noodle shop: a formica table running
 // to a rain-streaked window, booth seats either side. On the table a bowl of
 // chicken pho with green chopsticks across it, a plate of herbs, the sauces,
 // an iced drink, and the menu propped against the glass. Behind the far
@@ -855,7 +855,7 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
     // leaving: lift to the rain on the window, the shot the apartment opens on
     exitShot: () => ({ position: V(-0.55, 1.5, 0.05), target: V(-1.05, 1.55, 0.0), fov: 34 }),
     restFocus: () => restFocusPoint,
-    dof: { rest: 0.012, examine: 0.03 },
+    dof: { rest: 0.012, examine: 0.022 },
     lights: { attention },
     update(t, dt, held, hovered) {
       menuHandle.update(dt, held === menuArtifact, reducedMotion);

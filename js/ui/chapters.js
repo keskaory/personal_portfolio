@@ -1,5 +1,7 @@
 // The chapter list along the edge, built from the stops in content/site.json.
-// Chapters with more than one stop list them underneath.
+// Chapters name what you'll find (Who I Am, Selected Work, Beyond the Work), not
+// the places; a stop marked "nav": false (an environment's own resting stop) isn't
+// listed underneath its chapter.
 import { escapeHTML } from "../lib/content.js";
 
 export function createChapterNav(el, stops, onGo) {
@@ -13,7 +15,7 @@ export function createChapterNav(el, stops, onGo) {
   el.innerHTML = `<ol>${chapters.map(c => `
     <li class="chapter" data-chapter="${escapeHTML(c.name)}">
       <a href="#${escapeHTML(c.stops[0].id)}" data-index="${c.stops[0].index}">${escapeHTML(c.name)}</a>
-      ${c.stops.length > 1 ? `<ol>${c.stops.map(s => `<li><a href="#${escapeHTML(s.id)}" data-index="${s.index}">${escapeHTML(s.label)}</a></li>`).join("")}</ol>` : ""}
+      ${(subs => subs.length > 1 ? `<ol>${subs.map(s => `<li><a href="#${escapeHTML(s.id)}" data-index="${s.index}">${escapeHTML(s.label)}</a></li>`).join("")}</ol>` : "")(c.stops.filter(s => s.nav !== false))}
     </li>`).join("")}</ol>`;
 
   el.addEventListener("click", e => {

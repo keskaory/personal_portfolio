@@ -72,6 +72,21 @@ body[data-title="1"]:not(.moving):not(.examining) .site-header :is(.site-name, .
 .caption.on { opacity: 1; }
 .examining .caption { opacity: 0; }
 
+/* subtitles after you arrive somewhere: one line, the warm yellow of old subtitled prints */
+.subtitle {
+  position: fixed; left: 50%; bottom: 9vh; z-index: 10; margin: 0;
+  transform: translateX(-50%);
+  max-width: min(90vw, 52ch); text-align: center;
+  font-family: var(--sans); font-size: clamp(17px, 1.5vw, 21px); line-height: 1.35; letter-spacing: 0.01em;
+  color: #e6cf72;
+  text-shadow: 0 0 2px rgb(0 0 0 / 0.95), 0 1px 3px rgb(0 0 0 / 0.9), 0 0 1px rgb(0 0 0);
+  opacity: 0; transition: opacity 0.7s ease;
+  pointer-events: none;
+}
+.subtitle.on { opacity: 1; }
+.subtitling .caption { opacity: 0; } /* hover captions wait until the line has gone */
+.reading .subtitle, .examining .subtitle { opacity: 0; }
+
 /* keyboard list of objects: out of sight until it has focus */
 .artifact-nav {
   position: fixed; left: clamp(16px, 4vw, 44px); bottom: 64px; z-index: 12;

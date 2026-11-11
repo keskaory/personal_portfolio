@@ -1,11 +1,11 @@
 // Beyond the Work, 2:10 am. A small room with space in it, seen from the door:
 //   the back wall    - a big window, rain on it, a deep sill, curtains drawn back
-//   the right        - the bed against the wall, plaid duvet, a throw, the black hoodie dropped on it;
+//   the right        - the bed against the wall, plain bedding, slept in;
 //                      at its head the nightstand: the paper lamp, the fragrances, a dish of rings;
 //                      Polaroids taped to the wall above
 //   the left wall    - wooden crates of manga, covers facing out on top; the CRT on a low stand;
-//                      two pieces hanging on hooks
-//   the middle       - a low table on a rug: the MacBook open and asleep, a mug, a manga left open
+//                      by the door, a coat, a jacket and the black hoodie on hooks
+//   the middle       - a low table on two tatami mats: the MacBook open and asleep, a mug, a manga left open
 //   the floor        - the volleyball by the bed
 // Warmth comes from the lamp and from where things are, not from more things.
 // Arriving: the match cut opens on the rain on this window, then pulls back.
@@ -118,14 +118,19 @@ function coverTexture(item, colour, seed) {
 }
 // tatami: a fine straw weave running the length of the mat, faintly green-gold, aged
 function tatamiTexture() {
-  return canvasTex(256, 512, ctx => {
+  // drawn large and soft: the weave is felt as a fine texture, never as lines finer than a pixel
+  // (those shimmer as the camera moves)
+  return canvasTex(512, 1024, ctx => {
     const rand = seeded(521);
-    ctx.fillStyle = "#958d68"; ctx.fillRect(0, 0, 256, 512);
-    for (let x = 0; x < 256; x += 2) { ctx.fillStyle = `rgba(${rand() < 0.5 ? "70,66,40" : "235,228,190"},${0.08 + rand() * 0.12})`; ctx.fillRect(x, 0, 1, 512); }
-    for (let y = 0; y < 512; y += 22) { ctx.fillStyle = "rgba(60,55,30,0.18)"; ctx.fillRect(0, y, 256, 1); } // the cross-stitching
-    const g = ctx.createRadialGradient(128, 256, 30, 128, 256, 300);
-    g.addColorStop(0, "rgba(255,250,220,0.08)"); g.addColorStop(1, "rgba(60,50,20,0.12)");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 512);
+    ctx.fillStyle = "#958d68"; ctx.fillRect(0, 0, 512, 1024);
+    for (let x = 0; x < 512; x += 6) { ctx.fillStyle = `rgba(${rand() < 0.5 ? "70,66,40" : "235,228,190"},${0.04 + rand() * 0.05})`; ctx.fillRect(x, 0, 4, 1024); }
+    for (let y = 0; y < 1024; y += 64) { ctx.fillStyle = "rgba(60,55,30,0.08)"; ctx.fillRect(0, y, 512, 3); } // the cross-stitching
+    ctx.filter = "blur(1.5px)";
+    ctx.drawImage(ctx.canvas, 0, 0);
+    ctx.filter = "none";
+    const g = ctx.createRadialGradient(256, 512, 60, 256, 512, 600);
+    g.addColorStop(0, "rgba(255,250,220,0.06)"); g.addColorStop(1, "rgba(60,50,20,0.12)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 1024);
   });
 }
 // plain woven fabric: one colour, a faint weave, no print
@@ -230,7 +235,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
     g.computeVertexNormals();
     const m = new THREE.Mesh(g, curtainMat);
     m.position.set(x, 1.31, -1.8);
-    m.castShadow = true;
+    m.castShadow = false; // they sway; their shadows would crawl across the floor
     scene.add(m);
     return m;
   };
@@ -245,8 +250,8 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   street.shadow.bias = -0.0003;
   scene.add(street, street.target);
   scene.add(new THREE.HemisphereLight("#5e5040", "#1c160f", 1.6));
-  const fill = new THREE.PointLight("#ffc890", 2.6, 5, 1.4); // the hall light by the door, falling across the coats
-  fill.position.set(-0.8, 2.25, 1.95);
+  const fill = new THREE.PointLight("#ffc890", 3.2, 5, 1.4); // the hall light by the door, falling across the coats
+  fill.position.set(-1.0, 2.3, 1.45);
   scene.add(fill);
   const attention = new THREE.SpotLight("#ffe7cc", 0, 4, 0.22, 1, 2);
   attention.position.set(1.2, 1.9, 1.2);
@@ -313,12 +318,6 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
     pillow.castShadow = pillow.receiveShadow = true;
     scene.add(pillow);
   });
-  // the black hoodie, dropped on the bed
-  const hoodie = new THREE.Mesh(garmentGeo({ sw: 0.23, hw: 0.22, len: 0.66, sleeve: 0.62, hood: true, depth: 0.04 }), new THREE.MeshStandardMaterial({ map: clothTexture("#1a1a1c"), roughness: 0.95 }));
-  hoodie.rotation.set(-Math.PI / 2, 0, 2.3);
-  hoodie.position.set(bedX - 0.05, 0.53, bedZ + 0.25);
-  hoodie.castShadow = true;
-  scene.add(hoodie);
 
   // ---- the nightstand at the bed's head: the paper lamp, the fragrances, a dish of rings
   const nsX = 0.91, nsZ = -1.64, NS_Y = 0.56; // between the end of the sill and the bed
@@ -534,12 +533,13 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   const pieces = [
     { z: 0.95, color: "#3a3b3f", sw: 0.22, hw: 0.23, len: 0.98, sleeve: 0.72 }, // a long charcoal coat
     { z: 1.45, color: "#2c3a52", sw: 0.21, hw: 0.2, len: 0.62, sleeve: 0.58 },  // a denim jacket
+    { z: 1.92, color: "#1c1c1e", sw: 0.23, hw: 0.22, len: 0.66, sleeve: 0.62, hood: true }, // the black hoodie
   ];
   const garments = pieces.map(p => {
     const g = new THREE.Group();
     const hook = new THREE.Mesh(new THREE.TorusGeometry(0.02, 0.004, 6, 12, Math.PI * 1.3), hookMat);
     hook.rotation.y = Math.PI / 2;
-    const cloth = new THREE.Mesh(garmentGeo(p), new THREE.MeshStandardMaterial({ map: clothTexture(p.color), color: "#8a8a8a", roughness: 0.92 }));
+    const cloth = new THREE.Mesh(garmentGeo(p), new THREE.MeshStandardMaterial({ map: clothTexture(p.color), color: "#a8a8a8", roughness: 0.92 }));
     cloth.position.set(0.02, -0.03, 0);
     cloth.rotation.y = Math.PI / 2; // facing into the room
     cloth.castShadow = cloth.receiveShadow = true;
@@ -548,8 +548,13 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
     scene.add(g);
     return g;
   });
-  const railHit = hitBox(0.2, 1.1, 1.05);
-  railHit.position.set(-2.0, 1.35, 1.2);
+  // a small spot from the ceiling by the door, aimed down at the hooks
+  const hookSpot = new THREE.SpotLight("#ffd9b0", 7, 3, 0.55, 0.7, 1.5);
+  hookSpot.position.set(-1.45, 2.55, 1.42);
+  hookSpot.target.position.set(-2.06, 1.25, 1.42);
+  scene.add(hookSpot, hookSpot.target);
+  const railHit = hitBox(0.2, 1.1, 1.4);
+  railHit.position.set(-2.0, 1.35, 1.42);
   scene.add(railHit);
 
   // ---- the low table on the rug: the MacBook open and asleep, a mug, a manga left open
@@ -684,7 +689,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   });
   add({
     id: "apt-rail", stop: "rest", hits: [railHit], object: garments[0], caption: "What I wear",
-    examine: shotAt(V(-2.0, 1.3, 1.2), V(1.7, 0.1, 0.1), "right", 50),
+    examine: shotAt(V(-2.0, 1.3, 1.42), V(1.9, 0.1, 0.1), "right", 52),
     panel: collectionPanel("style"),
   });
   artifacts.forEach(a => { if (!a.leave) a.leave = () => { const s = a.examine(false); return { ...s, position: s.position.clone().lerp(s.target, 0.3), fov: s.fov - 4 }; }; });
@@ -733,7 +738,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
       screenT += dt;
       if (drawLoop && screenT > 0.1) { screenT = 0; drawScreen(t); }
       crtGlow.intensity = reducedMotion ? 1.2 : 1.2 + Math.sin(t * 9) * 0.08 + Math.sin(t * 2.3) * 0.15;
-      if (!reducedMotion) curtains.forEach((c, i) => (c.rotation.y = Math.sin(t * 0.4 + i) * 0.02));
+      if (!reducedMotion) curtains.forEach((c, i) => (c.rotation.y = Math.sin(t * 0.4 + i) * 0.012));
     },
   };
 }

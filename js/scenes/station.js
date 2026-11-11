@@ -114,7 +114,8 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   line.position.set(0, 0.004, -0.24);
   scene.add(line);
   scene.add(box(44, 0.066, 0.2, paint, 0, -0.027, -0.05, { cast: false })); // edge coping, 6 mm proud of the tiles
-  scene.add(box(44, 1.1, 0.3, wall, 0, -0.6, 0.0, { cast: false }));       // the platform's face
+  scene.add(box(44, 1.1, 0.3, wall, 0, -0.6, -0.1, { cast: false }));      // the platform's face, flush under the edge
+  const TRAIN_Z = 1.58; // the track's centre line: the train's side stands 8 cm off the platform edge
 
   // grime where the back wall meets the floor, and the damp along the platform edge where rain blows in
   const shade = (w, h, stops) => {
@@ -134,14 +135,26 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   // ---- the track bed, rails and sleepers
   const bed = new THREE.Mesh(new THREE.PlaneGeometry(44, 4.4), new THREE.MeshStandardMaterial({ map: gravel(), roughness: 1 }));
   bed.rotation.x = -Math.PI / 2;
-  bed.position.set(0, -1.15, 2.1);
+  bed.position.set(0, -1.15, TRAIN_Z);
   bed.receiveShadow = true;
   scene.add(bed);
   const rail = new THREE.MeshStandardMaterial({ color: "#9a9e9a", metalness: 0.7, roughness: 0.42 }); // not mirror-bright: thin bright lines shimmer
-  [1.25, 2.75].forEach(z => scene.add(box(44, 0.12, 0.07, rail, 0, -1.03, z, { cast: false })));
-  const sleepers = new THREE.InstancedMesh(new THREE.BoxGeometry(0.22, 0.08, 2.4), new THREE.MeshStandardMaterial({ color: "#3a3631", roughness: 0.9 }), 72);
-  for (let i = 0; i < 72; i++) sleepers.setMatrixAt(i, new THREE.Matrix4().makeTranslation(-21.5 + i * 0.6, -1.1, 2.0));
+  // the track runs on past the platform's end into the tunnel the train comes out of
+  [TRAIN_Z - 0.75, TRAIN_Z + 0.75].forEach(z => scene.add(box(140, 0.12, 0.07, rail, 48, -1.03, z, { cast: false })));
+  const sleepers = new THREE.InstancedMesh(new THREE.BoxGeometry(0.22, 0.08, 2.4), new THREE.MeshStandardMaterial({ color: "#3a3631", roughness: 0.9 }), 230);
+  for (let i = 0; i < 230; i++) sleepers.setMatrixAt(i, new THREE.Matrix4().makeTranslation(-21.5 + i * 0.6, -1.1, TRAIN_Z));
   scene.add(sleepers);
+
+  // ---- the platform's far end: a wall with the tunnel mouth over the track, the tunnel dark behind it
+  const PORTAL = { z0: 0.12, z1: TRAIN_Z + 1.65, top: 2.9 };
+  scene.add(box(0.4, 4.6, 4.52, wall, 22.2, 1.1, -2.14, { cast: false }));
+  scene.add(box(0.4, 4.6, 4.37, wall, 22.2, 1.1, 5.415, { cast: false }));
+  scene.add(box(0.4, 0.5, PORTAL.z1 - PORTAL.z0, wall, 22.2, 3.15, (PORTAL.z0 + PORTAL.z1) / 2, { cast: false }));
+  const tunnelMat = new THREE.MeshStandardMaterial({ map: concrete("#1c1e1d", 309), roughness: 0.95, side: THREE.BackSide });
+  const tunnel = new THREE.Mesh(new THREE.BoxGeometry(100, PORTAL.top + 1.15, PORTAL.z1 - PORTAL.z0), tunnelMat);
+  tunnel.position.set(72.4, (PORTAL.top - 1.15) / 2, (PORTAL.z0 + PORTAL.z1) / 2);
+  tunnel.receiveShadow = true;
+  scene.add(tunnel);
 
   // ---- the far platform, a low wall, and the city beyond
   const far = new THREE.Mesh(new THREE.PlaneGeometry(44, 3), new THREE.MeshStandardMaterial({ color: "#2b2c29", roughness: 0.35 }));
@@ -286,7 +299,7 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   scene.add(drops);
   const FRONT_X = -15; // where the cab stops: past the camera, so the lit cars run away down the platform
   const train = createTrain({ cars: 4 });
-  train.group.position.set(FRONT_X, 0, 2.0);
+  train.group.position.set(FRONT_X, 0, TRAIN_Z);
   scene.add(train.group);
   const door = train.doorsX.map(x => x + FRONT_X).sort((a, b) => Math.abs(a - 0.6) - Math.abs(b - 0.6))[0]; // the door across from the bench
 
@@ -304,7 +317,7 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
     ? { side: "bottom", position: pos.clone().add(V(-0.1, 0.12, 0.05)), target: look.clone().add(V(0, -0.1, 0)), fov: 40 }
     : { side, position: pos, target: look, fov: 32 };
   const resumeHref = linkOr(links.resume, "contents.html#resume");
-  const doorShot = portrait => ({ side: portrait ? "bottom" : "left", position: V(door - 2.2, 1.45, -1.9), target: V(door + 0.2, 1.3, 0.55), fov: portrait ? 50 : 36 });
+  const doorShot = portrait => ({ side: portrait ? "bottom" : "left", position: V(door - 2.3, 1.4, -2.35), target: V(door + 0.2, 1.05, TRAIN_Z - 1.45), fov: portrait ? 52 : 38 });
   const artifacts = [
     {
       id: "station-letter", stop: "rest", hit: letterHit, object: letter, handle: handles.letter,
@@ -351,7 +364,7 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
       id: "station-train", stop: "rest", hits: train.hits, object: train.group,
       caption: "Board the train",
       examine: doorShot,
-      leave: () => ({ position: V(door - 3.2, 1.45, -2.2), target: V(door, 1.3, 0.55), fov: 36 }),
+      leave: () => ({ position: V(door - 3.2, 1.45, -2.65), target: V(door, 1.2, TRAIN_Z - 1.45), fov: 38 }),
       panel: () => ({
         title: `The last ${route.line} train`,
         meta: `Toward ${destination}. Next stop: ${nextStop}.`,
@@ -396,7 +409,9 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
     // boarding: a few steps to the open doorway as the doors begin to close, then cut
     exit(done, { rig, portrait }) {
       ride = { t: 0, done, stage: 0 };
-      rig.go({ position: V(door - 0.1, 1.55, -0.55), target: V(door + 0.15, 1.4, 2.4), fov: portrait ? 56 : 44 }, 1.1);
+      // if it hasn't quite stopped yet, it has by the time you reach it
+      if (arriving) { arriving = null; train.group.position.x = FRONT_X; train.openDoors(true); }
+      rig.go({ position: V(door - 0.1, 1.55, -0.95), target: V(door + 0.15, 1.4, TRAIN_Z + 0.4), fov: portrait ? 56 : 44 }, 1.1);
     },
     reset() { train.group.position.x = FRONT_X; arriving = null; ride = null; speed = 0; train.openDoors(false); },
     update(t, dt, held, hovered) {
@@ -405,7 +420,7 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
         a.object.updateMatrixWorld();
         a.focus.setFromMatrixPosition(a.object.matrixWorld);
       });
-      artifacts[3].focus.set(door, 1.3, 0.55);
+      artifacts[3].focus.set(door, 1.3, TRAIN_Z - 1.45);
       // hover: paper lifts a centimetre, the map brightens
       ["letter", "ticket"].forEach(k => {
         const a = artifacts.find(x => x.id === `station-${k}`);

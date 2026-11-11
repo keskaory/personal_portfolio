@@ -77,6 +77,8 @@ async function main() {
     scene.environmentIntensity = 0.5;
     const api = SCENES[name](scene, content, { reducedMotion: reduced });
     if (quality === "low") scene.traverse(o => { if (o.isLight && o.shadow) o.shadow.mapSize.set(1024, 1024); });
+    // prepare every material now, so nothing appears late the first time it comes into view
+    try { renderer.compile(scene, camera); } catch {}
     built[name] = { scene, api };
     return built[name];
   }

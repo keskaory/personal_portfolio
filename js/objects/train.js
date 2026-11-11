@@ -14,7 +14,7 @@ import { roughnessMap } from "./surface.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
-const CAR = 20, GAP = 0.6, HEIGHT = 3.2, WIDTH = 2.9, BOTTOM = -0.6;
+const CAR = 20, GAP = 0.3, HEIGHT = 3.2, WIDTH = 2.9, BOTTOM = -0.6;
 const PX = 102.4; // canvas pixels per metre along the car
 const W = 2048, H = 320; // one car side: 20 m by 3.2 m
 const y2c = y => (BOTTOM + HEIGHT - y) * 100; // world height -> canvas row
@@ -267,6 +267,18 @@ export function createTrain({ cars = 4, lineStrip = null } = {}) {
   const leafMat = new THREE.MeshStandardMaterial({ map: leafTex.map, alphaMap: leafTex.alphaMap, alphaTest: 0.5, metalness: 0.4, roughness: 0.5, side: THREE.DoubleSide });
   // tinted, reflective glass: the station's tubes slide across it, the interior shows through
   const glass = new THREE.MeshStandardMaterial({ color: "#1e2826", roughness: 0.05, metalness: 0.1, envMapIntensity: 1.6, transparent: true, opacity: 0.2, depthWrite: false });
+  // the gangway between cars: black rubber bellows, folded, set in from the sides
+  const folds = (() => {
+    const c = document.createElement("canvas"); c.width = 64; c.height = 4;
+    const x = c.getContext("2d"); const gr = x.createLinearGradient(0, 0, 64, 0);
+    [[0, "#0c0c0c"], [0.35, "#2a2a29"], [0.5, "#353533"], [0.65, "#2a2a29"], [1, "#0c0c0c"]].forEach(([k, v]) => gr.addColorStop(k, v));
+    x.fillStyle = gr; x.fillRect(0, 0, 64, 4);
+    const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.repeat.set(7, 1); t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  })();
+  const bellows = new THREE.MeshStandardMaterial({ map: folds, roughness: 0.8, metalness: 0 });
+  const endPlate = new THREE.MeshStandardMaterial({ color: "#2e3231", metalness: 0.4, roughness: 0.6 });
+  const threshold = new THREE.MeshStandardMaterial({ color: "#b4b8b6", metalness: 0.75, roughness: 0.32 });
   const hits = [], leaves = [], rains = [], pools = [];
   for (let k = 0; k < cars; k++) {
     const cx = CAR / 2 + k * (CAR + GAP);
@@ -315,6 +327,24 @@ export function createTrain({ cars = 4, lineStrip = null } = {}) {
       car.add(leaf);
       leaves.push(leaf);
     }));
+    // the car's end, closed off behind the gangway (not at the cab, which has its own face)
+    [-1, 1].forEach(e => {
+      if (k === 0 && e < 0) return;
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(0.04, HEIGHT - 0.12, WIDTH - 0.02), endPlate);
+      plate.position.set(e * (CAR / 2 - 0.02), BOTTOM + (HEIGHT - 0.12) / 2 + 0.04, 0);
+      car.add(plate);
+    });
+    // flush steel threshold plates in the doorways, level with the platform
+    DOORS.forEach(d => {
+      const t = new THREE.Mesh(new THREE.BoxGeometry(DOOR_W + 0.04, 0.012, 0.16), threshold);
+      t.position.set(-d, 0.01, -WIDTH / 2 + 0.06);
+      car.add(t);
+    });
+    if (k < cars - 1) {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(GAP + 0.04, 2.3, WIDTH - 0.36), bellows);
+      b.position.set(CAR / 2 + GAP / 2, 0.05 + 2.3 / 2, 0);
+      car.add(b);
+    }
     g.add(car);
   }
   const doorsX = DOORS.map(d => CAR / 2 - d); // the first car's doorways (mirrored by the skin's rotation)
@@ -351,7 +381,7 @@ export function createTrain({ cars = 4, lineStrip = null } = {}) {
       polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8,
     }));
     m.rotation.x = -Math.PI / 2;
-    m.position.set(CAR / 2 + k * (CAR + GAP), 0.009, -WIDTH / 2 - 0.5 - 0.85);
+    m.position.set(CAR / 2 + k * (CAR + GAP), 0.009, -WIDTH / 2 - 0.08 - 0.85);
     g.add(m);
   });
 

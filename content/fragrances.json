@@ -1,14 +1,14 @@
 {
-  "_note": "Sample bottles. Everything here is placeholder text. 'size' is 15, 50 or 100 (ml) and sets the bottle's proportions. 'tint' is the liquid color.",
+  "_note": "Your three bottles. Names and where they came from are yours; sizes, notes, memory and wear are still placeholders to fill in. 'size' is 15, 50 or 100 (ml) and sets the bottle's proportions. 'tint' is the liquid color. 'label' is the typed label, one line each, set like Le Labo's.",
   "fragrances": [
     {
       "id": "fragrance-01",
-      "name": "Fragrance one",
+      "name": "Baie 19",
       "label": [
-        "fragrance one",
-        "no. 00",
-        "[ city ]",
-        "[ date ]"
+        "baie 19",
+        "eau de parfum",
+        "compounded: [ city ]",
+        "fresh: [ date ]"
       ],
       "size": 100,
       "tint": "#e9d9a6",
@@ -17,17 +17,17 @@
       "notes": "Placeholder: what you smell first, and what stays.",
       "memory": "Placeholder: a place, a person, or a season it brings back.",
       "wear": "Placeholder: when you reach for it.",
-      "acquired": "Placeholder: when and where you got it.",
+      "acquired": "Kansai Airport.",
       "sample": true
     },
     {
       "id": "fragrance-02",
-      "name": "Fragrance two",
+      "name": "Another 13",
       "label": [
-        "fragrance two",
-        "no. 00",
-        "[ city ]",
-        "[ date ]"
+        "another 13",
+        "50ml e / 1.7 fl.oz.liq.",
+        "eau de parfum",
+        "compounded: new york"
       ],
       "size": 50,
       "tint": "#f1e8cf",
@@ -36,17 +36,17 @@
       "notes": "Placeholder: what you smell first, and what stays.",
       "memory": "Placeholder: a place, a person, or a season it brings back.",
       "wear": "Placeholder: when you reach for it.",
-      "acquired": "Placeholder: when and where you got it.",
+      "acquired": "New York, a gift from my girlfriend.",
       "sample": true
     },
     {
       "id": "fragrance-03",
-      "name": "Fragrance three",
+      "name": "Matcha 26",
       "label": [
-        "fragrance three",
-        "no. 00",
-        "[ city ]",
-        "[ date ]"
+        "matcha 26",
+        "eau de parfum",
+        "compounded: osaka",
+        "fresh: [ date ]"
       ],
       "size": 15,
       "tint": "#dcc58e",
@@ -55,7 +55,7 @@
       "notes": "Placeholder: what you smell first, and what stays.",
       "memory": "Placeholder: a place, a person, or a season it brings back.",
       "wear": "Placeholder: when you reach for it.",
-      "acquired": "Placeholder: when and where you got it.",
+      "acquired": "Osaka.",
       "sample": true
     }
   ]

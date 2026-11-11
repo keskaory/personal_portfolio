@@ -1,34 +1,62 @@
 {
-  "_note": "The apartment's personal collections. Everything here is sample text: replace it with your own. Fragrances live in fragrances.json.",
+  "_note": "The apartment's personal collections. Everything marked sample is placeholder text: replace it with your own. Fragrances live in fragrances.json. Books: each item can be a title, or { \"title\": ..., \"cover\": \"assets/books/your-cover.jpg\" } to show the real cover. TV: type is 'loop' (the drifting picture), 'image' (a still, set src), or 'video' (a muted looping mp4/webm you own, set src).",
   "books": {
     "title": "Manga and books",
     "sample": true,
     "intro": "Sample line: what you read, and when.",
-    "items": ["Sample title one", "Sample title two, a longer one", "Sample title three"]
+    "items": [
+      {
+        "title": "Sample title one",
+        "cover": ""
+      },
+      {
+        "title": "Sample title two, a longer one",
+        "cover": ""
+      },
+      {
+        "title": "Sample title three",
+        "cover": ""
+      }
+    ]
   },
   "films": {
     "title": "Films",
     "sample": true,
     "intro": "Sample line: the films you return to.",
-    "items": ["Sample film one", "Sample film two", "Sample film three"]
+    "items": [
+      "Sample film one",
+      "Sample film two",
+      "Sample film three"
+    ]
   },
   "photos": {
     "title": "Polaroids",
     "sample": true,
     "intro": "Sample line: where these were taken.",
-    "items": ["Sample caption: a place and a year", "Sample caption", "Sample caption"]
+    "items": [
+      "Sample caption: a place and a year",
+      "Sample caption",
+      "Sample caption"
+    ]
   },
   "style": {
     "title": "What I wear",
     "sample": true,
     "intro": "Sample line: how you think about clothes.",
-    "items": ["Sample piece", "Sample piece", "Sample piece"]
+    "items": [
+      "Sample piece",
+      "Sample piece",
+      "Sample piece"
+    ]
   },
   "jewelry": {
     "title": "Rings and chains",
     "sample": true,
     "intro": "Sample line: the pieces you wear every day.",
-    "items": ["Sample piece", "Sample piece"]
+    "items": [
+      "Sample piece",
+      "Sample piece"
+    ]
   },
   "volleyball": {
     "title": "Volleyball",
@@ -41,5 +69,9 @@
     "sample": true,
     "intro": "Sample line: what you build when no one asks you to.",
     "items": []
+  },
+  "tv": {
+    "type": "loop",
+    "src": ""
   }
 }

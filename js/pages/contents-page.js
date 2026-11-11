@@ -44,7 +44,7 @@ if (ready) {
     ${Object.entries(collections || {}).filter(([k]) => !k.startsWith("_")).map(([, c]) => `
       <h3 class="index-h3">${escapeHTML(c.title)}${sample(c.sample)}</h3>
       ${c.intro ? `<p class="index-sub">${escapeHTML(c.intro)}</p>` : ""}
-      ${c.items && c.items.length ? `<ul class="index-list compact">${c.items.map(i => `<li>${escapeHTML(i)}</li>`).join("")}</ul>` : ""}`).join("")}
+      ${c.items && c.items.length ? `<ul class="index-list compact">${c.items.map(i => `<li>${escapeHTML(typeof i === "string" ? i : i.title)}</li>`).join("")}</ul>` : ""}`).join("")}
   `);
   ready.done();
   if (location.hash) document.querySelector(location.hash)?.scrollIntoView();

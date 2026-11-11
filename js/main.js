@@ -235,6 +235,15 @@ async function main() {
     return { ...shot, position: shot.position.clone().addScaledVector(dir, d) };
   };
 
+  // history: moving from one stop to another adds an entry, so the browser's Back and Forward
+  // walk the journey; if the address already shows where we're going (Back, Forward, a link),
+  // or we're coming from an object's address, it only replaces
+  function remember(id, instant) {
+    const here = decodeURIComponent(location.hash.slice(1)) || stops[0].id; // a bare address is the start
+    if (!instant && here !== id && stopIndex(here) >= 0) history.pushState(null, "", `#${id}`);
+    else history.replaceState(null, "", `#${id}`);
+  }
+
   let queued = null;
   function goTo(i, { instant = false, then = null, queue = true } = {}) {
     i = (i + stops.length) % stops.length;
@@ -244,7 +253,7 @@ async function main() {
       current = i;
       showStop();
       interaction.setHits([selected.reader.left, selected.reader.right]);
-      history.replaceState(null, "", `#${stops[i].id}`);
+      remember(stops[i].id, false);
       openReader(read);
       return;
     }
@@ -259,7 +268,7 @@ async function main() {
     current = i;
     hovered = null;
     caption.hide();
-    history.replaceState(null, "", `#${to.id}`);
+    remember(to.id, instant);
 
     if (instant) {
       activate(to.scene);

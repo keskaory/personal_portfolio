@@ -340,7 +340,7 @@ export function createTrain({ cars = 4, lineStrip = null } = {}) {
       leaves.forEach(l => (l.position.x = l.userData.home + l.userData.sgn * e * (DOOR_W / 2 - 0.04)));
       const blink = doors > 0 && doors < 1 ? (Math.sin(lamp * 14) > 0 ? 1.6 : 0.3) : 1.2;
       hits.forEach(h => (h.material.emissiveIntensity = blink));
-      rains.forEach(r => r.userData.tick(t));
+      rains.forEach(r => r.userData.tick(reduced ? 0 : t));
     },
   };
 }

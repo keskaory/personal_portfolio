@@ -56,7 +56,7 @@ body[data-title="1"]:not(.moving):not(.examining) .site-header :is(.site-name, .
   transition: opacity 0.5s, color 0.3s;
 }
 .next:hover { color: var(--paper); }
-.examining .next { opacity: 0; pointer-events: none; }
+.examining .next, .reading .next { opacity: 0; pointer-events: none; } /* reading has its own previous/next */
 
 /* subtitle line */
 .caption {

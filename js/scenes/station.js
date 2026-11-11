@@ -411,7 +411,7 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
       hover.map += ((hovered === artifacts[2] ? 1 : 0) - hover.map) * Math.min(1, dt * 6);
       mapFace.material.color.setScalar(1.12 + hover.map * 0.18);
 
-      drops.material.uniforms.time.value = t;
+      drops.material.uniforms.time.value = reducedMotion ? 0 : t; // rain holds still for reduced motion
       if (arriving) {
         arriving.t += dt;
         const k = Math.min(1, arriving.t / 7);

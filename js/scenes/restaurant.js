@@ -866,7 +866,7 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
       menu.group.updateMatrixWorld();
       menuArtifact.focus.setFromMatrixPosition(menu.group.matrixWorld);
       menu.update(dt);
-      pane.userData.tick(t);
+      pane.userData.tick(reducedMotion ? 0 : t);
       steam.forEach(s => {
         const k = (t * 0.18 + s.phase) % 1;
         s.m.position.set(-0.58 + Math.sin(k * 6 + s.phase * 9) * 0.02, TABLE_Y + 0.13 + k * 0.32, 0.04);

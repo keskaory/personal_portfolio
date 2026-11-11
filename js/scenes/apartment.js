@@ -738,7 +738,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
       lcdMat.color.setRGB(0.55 + hl * 0.4, 0.55 + hl * 0.4, 0.6 + hl * 0.4);
       const hc = ease("coat", hovered === byId("apt-rail"), dt, 4);
       garments.forEach((g, i) => (g.rotation.x = Math.sin(t * 2 + i) * 0.02 * hc));
-      pane.userData.tick(t);
+      pane.userData.tick(reducedMotion ? 0 : t);
       screenT += dt;
       if (drawLoop && screenT > 0.1) { screenT = 0; drawScreen(t); }
       crtGlow.intensity = reducedMotion ? 1.2 : 1.2 + Math.sin(t * 9) * 0.08 + Math.sin(t * 2.3) * 0.15;

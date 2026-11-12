@@ -23,28 +23,33 @@ function speckle(ctx, w, h, rand, n, a) {
   }
 }
 
-// square platform tiles, worn, with darker grout and a few stains
+// Platform tiles as they're actually laid: 60 cm squares of one stone, in straight rows, the
+// grout thin and even, every tile with the same slight bevel. No tile is a different shade from
+// its neighbours and nothing is stamped on them: the wear and the damp come from the floor's
+// larger-scale shading (the damp along the edge, the grime by the wall), which doesn't repeat.
+// The texture holds 2 x 2 tiles (1.2 m), so the stone's fine grain doesn't repeat tile to tile.
+export const TILE = 0.6;
 export function platformTiles() {
-  const [c, ctx] = cv(512, 512);
+  const S = 512, T = S / 2, G = 3; // texture size, one tile, grout width (px)
+  const [c, ctx] = cv(S, S);
   const rand = seeded(301);
-  ctx.fillStyle = "#6d6c67";
-  ctx.fillRect(0, 0, 512, 512);
-  const n = 4, s = 512 / n;
-  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
-    const v = 98 + rand() * 18;
-    ctx.fillStyle = `rgb(${v},${v - 2},${v - 6})`;
-    ctx.fillRect(i * s + 2, j * s + 2, s - 4, s - 4);
+  ctx.fillStyle = "#57554f"; // grout
+  ctx.fillRect(0, 0, S, S);
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+    const x = i * T + G / 2, y = j * T + G / 2, w = T - G;
+    ctx.fillStyle = "#706e68";
+    ctx.fillRect(x, y, w, w);
+    ctx.fillStyle = "rgba(255,255,255,0.07)"; ctx.fillRect(x, y, w, 2); ctx.fillRect(x, y, 2, w);           // the bevel catching light
+    ctx.fillStyle = "rgba(0,0,0,0.12)"; ctx.fillRect(x, y + w - 2, w, 2); ctx.fillRect(x + w - 2, y, 2, w); // and its shadow side
   }
-  speckle(ctx, 512, 512, rand, 9000, 0.08);
-  for (let i = 0; i < 8; i++) {
-    const x = rand() * 512, y = rand() * 512, r = 20 + rand() * 60;
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, "rgba(30,28,24,0.18)");
-    g.addColorStop(1, "rgba(30,28,24,0)");
-    ctx.fillStyle = g;
-    ctx.fillRect(x - r, y - r, r * 2, r * 2);
-  }
-  return tex(c, { repeat: [20, 2] });
+  // the stone's own grain, fine and even everywhere
+  ctx.save();
+  ctx.beginPath();
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) ctx.rect(i * T + G / 2, j * T + G / 2, T - G, T - G);
+  ctx.clip();
+  speckle(ctx, S, S, rand, 16000, 0.06);
+  ctx.restore();
+  return tex(c, { repeat: [44 / (2 * TILE), 4.2 / (2 * TILE)] });
 }
 
 // the yellow tactile strip: rows of raised dots

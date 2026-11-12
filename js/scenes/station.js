@@ -2,7 +2,8 @@
 // places I've lived. An elevated platform, still running: the last train pulls
 // in as you arrive and opens its doors; the board says where it's going and
 // what it's doing; a tube stutters; rain falls past the canopy. The line map
-// stands on the platform. Leaving: you step to the doors as they close, and cut.
+// stands on the platform. Leaving: you step up to one of the train's lit windows,
+// and the cut matches it to the restaurant's window.
 //
 // Coordinates: meters; the platform runs along x, its top at y = 0, its
 // edge at z = 0 with the tracks at +z and the back wall at z = -4.2.
@@ -13,6 +14,7 @@ import { contactShadow, roughnessMap } from "../objects/surface.js";
 import { createLetter } from "../objects/paper.js";
 import { makeHandle, pose } from "../core/handling.js";
 import { linkOr } from "../lib/content.js";
+import { windowShot } from "../core/portal.js";
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
@@ -375,23 +377,48 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   ];
   artifacts.forEach(a => { a.focus = new THREE.Vector3(); (a.hits || [a.hit]).forEach(h => (h.userData.id = a.id)); });
 
-  // the train comes in when you arrive, then opens its doors
-  let arriving = null, ride = null, doorWait = -1, boardT = 0, speed = 0;
-  const arrive = () => {
-    ride = null; speed = 0;
+  // the train comes in when you arrive, then opens its doors; coming back to the platform
+  // (through the train's window) it is already in, doors open
+  let arriving = null, doorWait = -1, boardT = 0;
+  const arrive = ({ settled = false } = {}) => {
     train.openDoors(false);
     face.material.map = boards.arriving;
-    if (reducedMotion) { train.group.position.x = FRONT_X; arriving = null; doorWait = 0; return; }
-    arriving = { t: 0 };
+    if (reducedMotion || settled) {
+      train.group.position.x = FRONT_X; arriving = null;
+      if (settled) { train.openDoors(true); face.material.map = boards.open; boardT = 0; doorWait = -1; } else doorWait = 0;
+      return;
+    }
+    arriving = { t: 0, boost: 1 };
     doorWait = -1;
     train.group.position.x = FRONT_X + 90;
   };
   arrive();
 
+  const op = train.windowOpening;
+
   // hovering answers physically: paper lifts a little, the map's light comes up
   const hover = { letter: 0, ticket: 0, map: 0 };
   const homes = { letter: handles.letter, ticket: handles.ticket };
   const homeY = { letter: seatY, ticket: seatY };
+
+  // ---- the journey, as held shots (main.js puts them in order): on the platform the doors
+  // stand open, then close; inside, a still shot from a seat, across the aisle to the far
+  // window, the city going past in the rain; arriving, the same carriage slowing, then the
+  // platform as the doors open.
+  const windowsWorld = train.windowsX.map(x => x + FRONT_X);
+  const nearest = (list, x) => list.reduce((p, q) => (Math.abs(q - x) < Math.abs(p - x) ? q : p));
+  const FAR_GLASS = TRAIN_Z + op.far;
+  const NEAR_IN = TRAIN_Z + op.side + 0.07;   // the inside face of the platform side
+  const seatX = nearest(windowsWorld, -1.4);  // a window over a bench, across from a bench
+  const carriage = portrait => ({
+    // seated on the near bench, eyes at a seated height, looking straight across
+    position: V(seatX, 1.18, NEAR_IN + 0.36),
+    target: V(seatX, 1.32, FAR_GLASS),
+    fov: portrait ? 54 : 40,
+  });
+  let ride = null; // { mode: "through" | "arrive", t, rig }
+  const RIDE = { through: 3.4, gather: 1.0, brake: 1.5, slow: 2.4 }; // seconds
+  const ease = k => k * k * (3 - 2 * k);
 
   let flicker = 0;
   const restFocusPoint = V(0.3, 0.8, -3.6);
@@ -405,15 +432,43 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
     dof: { rest: 0.0, examine: 0.012 }, // no background blur at rest: it frayed the platform edge and softened the train
     lights: { attention },
     enter: arrive,
-    keepsCamera: true,
-    // boarding: a few steps to the open doorway as the doors begin to close, then cut
-    exit(done, { rig, portrait }) {
-      ride = { t: 0, done, stage: 0 };
-      // if it hasn't quite stopped yet, it has by the time you reach it
-      if (arriving) { arriving = null; train.group.position.x = FRONT_X; train.openDoors(true); }
-      rig.go({ position: V(door - 0.1, 1.55, -0.95), target: V(door + 0.15, 1.4, TRAIN_Z + 0.4), fov: portrait ? 56 : 44 }, 1.1);
+    // scene changes that pass through a window meet this place at the carriage's
+    portal: portrait => ({ shot: carriage(portrait), glass: V(seatX, 1.4, FAR_GLASS), light: "reflection" }),
+    // ---- the journey's pieces, for main.js to put in order
+    journey: {
+      // leaving: if it's still pulling in, it stops; the doors open
+      ready() {
+        if (arriving) { arriving.boost = Math.max(1, (7 - arriving.t) / 0.6); arriving.quick = true; }
+        else if (train.doorsOpen < 1 && doorWait < 0) train.openDoors(true);
+      },
+      get doorsOpen() { return train.doorsOpen === 1 && !arriving; },
+      closeDoors() { train.openDoors(false); face.material.map = boards.closing; },
+      carriage,
+      // under way. "through": pulling out, running, then braking into the next stop, nearly
+      // still by the end (the whole journey, compressed); "arrive": running in to this platform
+      ride(rig, mode) {
+        train.setDoors(false);
+        ride = { mode, t: 0, rig };
+        const m = mode === "through" ? 0.3 : 1;
+        train.motion = m; rig.sway = m * 0.6;
+      },
+      rideLength: RIDE.through,
+      // the passing lamp at its brightest across the window: the moment to cut on
+      get lampPeak() { return train.lampPhase > 0.42 && train.lampPhase < 0.58; },
+      // arriving: stopped at the platform, the doors opening
+      alight(rig) {
+        ride = null; train.stop(); rig.sway = 0;
+        train.group.position.x = FRONT_X; arriving = null; doorWait = -1;
+        train.setDoors(false); train.openDoors(true);
+        face.material.map = boards.open; boardT = 0;
+      },
     },
-    reset() { train.group.position.x = FRONT_X; arriving = null; ride = null; speed = 0; train.openDoors(false); },
+    reset() {
+      train.group.position.x = FRONT_X; arriving = null; doorWait = -1;
+      train.stop();
+      if (ride) ride.rig.sway = 0;
+      ride = null;
+    },
     update(t, dt, held, hovered) {
       artifacts.forEach(a => {
         if (a.handle) a.handle.update(dt, a === held, reducedMotion);
@@ -432,22 +487,28 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
 
       drops.material.uniforms.time.value = reducedMotion ? 0 : t; // rain holds still for reduced motion
       if (arriving) {
-        arriving.t += dt;
+        arriving.t += dt * arriving.boost;
         const k = Math.min(1, arriving.t / 7);
         train.group.position.x = FRONT_X + 90 * Math.pow(1 - k, 3);
-        if (k >= 1) { arriving = null; doorWait = 0.6; }
+        if (k >= 1) { doorWait = arriving.quick ? 0 : 0.6; arriving = null; }
       }
       if (doorWait >= 0) { doorWait -= dt; if (doorWait < 0) { train.openDoors(true); boardT = 0; } }
       if (ride) {
         ride.t += dt;
-        if (ride.stage === 0 && ride.t > 0.55) { ride.stage = 1; train.openDoors(false); face.material.map = boards.closing; }
-        if (ride.stage === 1 && ride.t > 1.05 && ride.done) { const d = ride.done; ride.done = null; d(); }
+        let m;
+        if (ride.mode === "through") {
+          const up = ease(Math.min(1, ride.t / RIDE.gather));
+          const down = ease(THREE.MathUtils.clamp((ride.t - (RIDE.through - RIDE.brake)) / RIDE.brake, 0, 1));
+          m = (0.3 + 0.7 * up) * (1 - 0.94 * down);
+        } else { const k = Math.min(1, ride.t / RIDE.slow); m = Math.max(0.12, 1 - ease(k) * 0.88); }
+        train.motion = m;
+        ride.rig.sway = m * 0.6;
       } else if (train.doorsOpen === 1 && !reducedMotion) {
         // waiting with the doors open: the board alternates between the doors and the next stop
         boardT += dt;
         face.material.map = Math.floor(boardT / 4) % 2 ? boards.next : boards.open;
       }
-      train.update(t, dt, { speed, reduced: reducedMotion });
+      train.update(t, dt, { speed: 0, reduced: reducedMotion });
       if (!reducedMotion) {
         flicker -= dt;
         if (flicker < 0) flicker = 3 + Math.random() * 6;

@@ -1,21 +1,23 @@
 // Moving an object between where it rests and where it is held, with a
 // small lift on the way so it clears whatever it lies on. Used for paper,
 // slides and files. `extra(p)` lets an object do more as it is picked up
-// (unfold, open a cover), with p going 0 to 1.
+// (unfold, open a cover), with p going 0 to 1. `lead` holds the object where it lies for that
+// share of the move, for something the object does in place first (the menu tipping up off
+// the table before it leaves it); extra(k, p) gets the eased move and the raw progress.
 import * as THREE from "three";
 
-const ease = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const ease = t => t * t * (3 - 2 * t); // the camera's easing, so hand and camera move alike
 
-export function makeHandle(object, { home, held, lift = 0.02, duration = 1.0, extra = null }) {
+export function makeHandle(object, { home, held, lift = 0.02, duration = 1.0, lead = 0, extra = null }) {
   const qHome = new THREE.Quaternion().setFromEuler(home.rotation);
   const qHeld = new THREE.Quaternion().setFromEuler(held.rotation);
   let p = 0;
   const apply = () => {
-    const k = ease(p);
+    const k = ease(THREE.MathUtils.clamp((p - lead) / (1 - lead), 0, 1));
     object.position.lerpVectors(home.position, held.position, k);
     object.position.y += Math.sin(Math.PI * k) * lift;
     object.quaternion.slerpQuaternions(qHome, qHeld, k);
-    if (extra) extra(k);
+    if (extra) extra(k, p);
   };
   apply();
   return {

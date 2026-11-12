@@ -21,6 +21,8 @@ const GradeShader = {
     exposure: { value: 1 },
     // scene changes: a soft band of passing light; -1 means off
     sweep: { value: -1 },
+    sweepGain: { value: 0.3 },   // how bright the band is at its middle
+    sweepWidth: { value: 4.5 },  // larger is narrower
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -28,7 +30,7 @@ const GradeShader = {
   `,
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse;
-    uniform float time, grain, vignette, saturation, exposure, sweep;
+    uniform float time, grain, vignette, saturation, exposure, sweep, sweepGain, sweepWidth;
     uniform vec3 shadowTint, highlightTint;
     varying vec2 vUv;
 
@@ -49,8 +51,8 @@ const GradeShader = {
       // passing light during a scene change, like headlights crossing the lens
       if (sweep > -0.5) {
         float p = vUv.x * 0.85 + (1.0 - vUv.y) * 0.25;
-        float band = exp(-pow((p - sweep) * 4.5, 2.0));
-        c += vec3(1.0, 0.8, 0.58) * band * 0.3;
+        float band = exp(-pow((p - sweep) * sweepWidth, 2.0));
+        c += vec3(1.0, 0.8, 0.58) * band * sweepGain;
       }
 
       // vignette

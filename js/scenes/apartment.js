@@ -15,6 +15,8 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { rainWindow } from "../objects/rain-window.js";
+import { windowShot } from "../core/portal.js";
+import { buildBuilding } from "./building.js";
 import { neonCity } from "../objects/station-textures.js";
 import { createBottle } from "../objects/bottle.js";
 import { plasterTexture, woodTexture, clothTexture, seeded } from "../objects/textures.js";
@@ -706,6 +708,13 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   const hover = new Map();
   const ease = (k, on, dt, rate = 7) => { const v = (hover.get(k) || 0) + ((on ? 1 : 0) - (hover.get(k) || 0)) * Math.min(1, dt * rate); hover.set(k, v); return v; };
 
+  // ---- home from outside, and the lamp coming on as you get in
+  const block = buildBuilding(scene, { reducedMotion });
+  const homeLights = [[lamp, lamp.intensity], [fill, fill.intensity], [hookSpot, hookSpot.intensity]];
+  let home = 1, homeTo = 1, switchAt = -1;
+  block.glow(1);
+  const setHome = k => { homeLights.forEach(([l, base]) => (l.intensity = base * k)); lampShade.material.emissiveIntensity = k; block.glow(k); };
+
   const restFocusPoint = V(-0.3, 0.5, -0.6);
   return {
     artifacts,
@@ -713,12 +722,24 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
       rest: { position: V(1.75, 1.9, 2.25), target: V(-0.45, 0.5, -0.85), fov: 56 },
       restPortrait: { position: V(1.4, 1.85, 2.3), target: V(0.25, 0.55, -0.95), fov: 74 },
     },
-    // the match cut lands here: the rain on this window, close up, before pulling back
-    entryShot: () => ({ position: V(-0.3, 1.52, -1.4), target: V(-0.3, 1.52, -2.0), fov: 34 }),
+    // the match cut lands here, square on this window, before pulling back into the room
+    portal: portrait => ({ ...windowShot(V(-0.3, 1.5, -1.96), V(0, 0, 1), 1.3, portrait), light: "headlights" }),
+    // seen from the alley. "arrive": the window dark, then the lamp comes on; "leave": dark
+    exterior: {
+      shot: block.shot,
+      cue(kind) {
+        if (kind === "arrive") { home = homeTo = 0; setHome(0); switchAt = reducedMotion ? 0 : 1.0; }
+        if (kind === "leave") { home = homeTo = 0; setHome(0); switchAt = -1; }
+      },
+    },
+    reset() { home = homeTo = 1; switchAt = -1; setHome(1); },
     restFocus: () => restFocusPoint,
     dof: { rest: 0.006, examine: 0.02 },
     lights: { attention },
     update(t, dt, held, hovered) {
+      block.update(t);
+      if (switchAt >= 0) { switchAt -= dt; if (switchAt < 0) homeTo = 1; }
+      if (home !== homeTo) { home = homeTo > home ? Math.min(homeTo, home + dt / 0.12) : homeTo; setHome(home); } // a switch, not a fade
       artifacts.forEach(a => {
         if (a.bottle) {
           const g = a.bottle.group;

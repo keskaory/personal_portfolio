@@ -2,7 +2,9 @@
 // each stop is a camera shot in one of the scenes below. Scenes are built
 // the first time they are needed and share one renderer, camera and grade.
 //
-// Every scene returns { artifacts, shots, restFocus(shot), lights, update() }
+// Every scene returns { artifacts, shots, restFocus(shot), lights, update(), portal(portrait) }
+// (portal: the window scene changes pass through), and may add enter(), reset(), exitCue()
+// and board() (the station: leaving by train)
 // and every artifact has { id, stop, hit or hits, focus, caption, panel(),
 // page, examine(portrait), leave(), drag?(dx), release?() }.
 import * as THREE from "three";
@@ -116,7 +118,13 @@ async function main() {
 
   const panel = createExaminePanel($("#examine"), {
     onPage: href => leave(selected, href),
-    onInternal: href => { putBack(); setTimeout(() => route(href, false), reduced ? 0 : 450); },
+    onInternal: href => {
+      const si = stopIndex(decodeURIComponent(href.replace(/^#/, "")));
+      // to another scene: the camera goes straight from here to the window, no stop on the way
+      if (si >= 0 && stops[si].scene !== stops[current].scene) { putBack({ focus: false, move: false }); route(href, false); return; }
+      putBack();
+      setTimeout(() => route(href, false), reduced ? 0 : 450);
+    },
     onBack: () => putBack(),
   });
 
@@ -220,23 +228,53 @@ async function main() {
   }
 
   let entered = null;
-  function activate(name) {
+  function activate(name, opts) {
     active = sceneFor(name);
     post.setScene(active.scene);
-    // a scene can set itself going as you arrive (the train pulling in)
-    if (entered !== active) { entered = active; active.api.enter?.(); }
+    // a scene can set itself going as you arrive (the train pulling in), or be found already
+    // settled when you come in through its window
+    if (entered !== active) { entered = active; active.api.enter?.(opts); }
+  }
+
+  // draw a scene once, off screen, from where the camera will be: textures go up to the GPU
+  // and shadow maps fill now, rather than on the first frame of the cut
+  const warmTarget = new THREE.WebGLRenderTarget(96, 96);
+  const warmCam = new THREE.PerspectiveCamera();
+  const warmed = new Set();  // scenes already drawn once from their window
+  function warm(b, shot) {
+    warmed.add(b);
+    warmCam.copy(camera);
+    warmCam.position.copy(shot.position);
+    warmCam.fov = shot.fov;
+    warmCam.lookAt(shot.target);
+    warmCam.updateProjectionMatrix();
+    warmCam.updateMatrixWorld();
+    const prev = renderer.getRenderTarget();
+    try { renderer.setRenderTarget(warmTarget); renderer.render(b.scene, warmCam); } catch {}
+    renderer.setRenderTarget(prev);
   }
 
   // ---- moving between stops
   const tweens = [];
-  function tween(from, to, duration, set, done) {
+  function tween(from, to, duration, set, done, tag) {
     if (reduced) duration = Math.min(duration, 0.25);
-    tweens.push({ from, to, duration, t: 0, set, done });
+    tweens.push({ from, to, duration, t: 0, set, done, tag });
   }
-  const backOff = (shot, d) => {
-    const dir = new THREE.Vector3().subVectors(shot.position, shot.target).normalize();
-    return { ...shot, position: shot.position.clone().addScaledVector(dir, d) };
+  const dropTweens = tag => { for (let i = tweens.length - 1; i >= 0; i--) if (tweens[i].tag === tag) tweens.splice(i, 1); };
+  // one pace for every camera move, so moving around always feels like the same hand on the camera
+  const PACE = {
+    stop: 1.8,      // between stops in the same room
+    approach: 1.2,  // to a window, before a cut (a little longer for longer walks)
+    settle: 1.6,    // from the window into the new room, after a cut
+    examine: 1.6,   // to something you've picked up
+    read: 1.8,      // up to the menu as it rises off the table
+    putBack: 1.6,   // back to where you were standing
+    leave: 1.2,     // toward a page, as the screen fades
+    carry: 0.25,    // metres a second kept through a cut when both moves run the same way
   };
+  let transition = null;     // the move under way, while there is one: { skip() }
+  let focusOverride = null;  // during a scene change, focus holds on the glass
+  let snapFocus = false;     // set at a cut: focus jumps to the new shot instead of easing
 
   // history: moving from one stop to another adds an entry, so the browser's Back and Forward
   // walk the journey; if the address already shows where we're going (Back, Forward, a link),
@@ -248,11 +286,11 @@ async function main() {
   }
 
   let queued = null;
-  function goTo(i, { instant = false, then = null, queue = true } = {}) {
+  function goTo(i, { instant = false, then = null } = {}) {
     i = (i + stops.length) % stops.length;
     const read = stops[i].read;
     // already reading in the same room: just turn to the section
-    if (read && selected?.reader && stops[i].scene === stops[current].scene) {
+    if (read && selected?.reader && stops[i].scene === stops[current].scene && mode === "examine") {
       current = i;
       showStop();
       interaction.setHits([selected.reader.left, selected.reader.right]);
@@ -260,9 +298,9 @@ async function main() {
       openReader(read);
       return;
     }
-    if (mode === "examine") putBack({ focus: false });
-    // a request made mid-move is kept and taken once the camera arrives
-    if (mode === "moving" && !instant) { if (queue) queued = { i, then }; return; }
+    if (mode === "examine") putBack({ focus: false, move: stops[i].scene === stops[current].scene });
+    // asked to go somewhere mid-move (the header, the chapter list, Back): finish this one now
+    if (mode === "moving" && !instant && transition) { queued = null; transition.skip(); }
     if (mode !== "rest" && !instant) return;
     const from = stops[current];
     const to = stops[i];
@@ -274,6 +312,7 @@ async function main() {
     remember(to.id, instant);
 
     if (instant) {
+      transition?.skip();
       activate(to.scene);
       showStop();
       rig.set(shotFor(active.api, to));
@@ -282,45 +321,199 @@ async function main() {
     }
     mode = "moving";
     document.body.classList.add("moving");
+    let finished = false;
+    // a safety net: whatever happens on the way (a hidden tab, a dropped frame), control comes back
+    const watchdog = setTimeout(() => { transition?.skip(); arrived(); }, 16000);
     const arrived = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(watchdog);
+      transition = null;
+      focusOverride = null;
       mode = "rest";
+      interaction.enabled = true;
       document.body.classList.remove("moving");
       then?.();
       if (queued) { const q = queued; queued = null; goTo(q.i, { then: q.then }); }
     };
     if (from.scene === to.scene) {
       showStop();
-      rig.go(shotFor(active.api, to), 1.9, arrived);
+      transition = { skip: () => rig.finish() };
+      rig.go(shotFor(active.api, to), PACE.stop, arrived);
       return;
     }
-    // a different scene: the scene may play its own exit first (the train
-    // arriving), then push forward into darkness, light passes, cut, settle
+    if (selected) putBack({ focus: false, move: false });
+    changeScene(to, arrived);
+  }
+
+  // ---- changing scenes: a match cut through windows. The camera goes to this scene's window
+  // and frames it square on; the cut lands on the next scene's window framed the same way (same
+  // lens, the opening filling the same share of the frame); then it settles into the new room.
+  // When both moves run the same way (toward the glass, or away from it) the speed carries
+  // through the cut; when they turn round, light passing over the glass covers the turn.
+  const viewDir = s => new THREE.Vector3().subVectors(s.target, s.position).normalize();
+
+  // ---- held shots. Each step sets up a shot (camera, what happens in it) and holds it for a
+  // time or until something happens in it (doors finish opening, a passing lamp at its brightest).
+  // The cut between steps is instant: no camera travel, no blur, no fade.
+  let seq = null;
+  function runShots(steps, done) { seq = { steps, i: -1, t: 0, done }; nextShot(); }
+  function nextShot() {
+    seq.i++; seq.t = 0;
+    const s = seq.steps[seq.i];
+    if (!s) { const d = seq.done; seq = null; d(); return; }
+    s.start?.(s);
+    snapFocus = true; // a new shot starts in focus; nothing racks across a cut
+  }
+  function tickShots(dt) {
+    if (!seq) return;
+    seq.t += dt;
+    const s = seq.steps[seq.i];
+    if (s && (s.until ? s.until(seq.t, s) : seq.t >= s.hold)) nextShot();
+  }
+  function skipShots() { while (seq) { nextShot(); rig.finish(); } }
+
+  // Moving between places, edited like film rather than flown like a drone. Each place has an
+  // establishing shot from outside (the street for the restaurant, the alley under the window for
+  // home) or, for the station, the train itself:
+  //   leaving the station: the platform held, doors open | they start to close -> cut | seated in
+  //     the carriage, the train pulling out, running, braking into the next stop -> cut
+  //   leaving elsewhere: the place from outside as you go (a car passes; at home the lamp is off)
+  //   arriving at the station: the carriage running in -> cut | the platform, doors opening
+  //   arriving elsewhere: the place from outside (a car passes; at home the lamp comes on) -> cut |
+  //     inside, the reverse angle on the same window, a small settle
+  // Screen direction holds: the city in the carriage window and the car in the street both run
+  // right to left.
+  function journey(leaving, dest, to, rest, out, into, p, settle) {
+    const L = leaving.api, D = dest.api;
+    const enter = () => { L.reset?.(); activate(to.scene, { settled: true }); showStop(); };
+    const steps = [];
+    if (L.journey) {
+      const j = L.journey;
+      steps.push({ // the platform: doors open, a beat for the open carriage to register
+        start: () => j.ready(),
+        until: (t, s) => { if (s.openAt == null && j.doorsOpen) s.openAt = t; return s.openAt != null && t - s.openAt > 0.9; },
+      });
+      steps.push({ start: () => j.closeDoors(), hold: 0.6 }); // they start to close: cut on that
+      steps.push({ start: () => { rig.set(j.carriage(p)); j.ride(rig, D.journey ? "arrive" : "through"); }, hold: j.rideLength });
+    } else if (L.exterior) {
+      steps.push({ start: () => { rig.set(L.exterior.shot(p)); L.exterior.cue("leave"); }, hold: 1.8 });
+    } else {
+      steps.push({ start: () => rig.go(out.shot, PACE.approach), until: () => !rig.moving });
+    }
+    if (D.journey) {
+      const j = D.journey;
+      steps.push({ start: () => { enter(); rig.set(j.carriage(p)); j.ride(rig, "arrive"); }, hold: 2.4 });
+      steps.push({ // the platform: stopped, doors opening, held until they're open
+        start: () => { j.alight(rig); rig.set(rest); },
+        until: t => j.doorsOpen && t > 0.8,
+      });
+    } else if (D.exterior) {
+      steps.push({ start: () => { enter(); rig.set(D.exterior.shot(p)); D.exterior.cue("arrive"); }, hold: 2.4 });
+      steps.push({ // inside: the existing composition, settling the last few centimetres
+        start: () => {
+          const back = viewDir(rest).multiplyScalar(-0.06);
+          rig.set({ ...rest, position: rest.position.clone().add(back) });
+          rig.go(rest, 1.4);
+          D.exterior.cue("inside");
+        },
+        until: () => !rig.moving,
+      });
+    } else {
+      steps.push({ start: () => { enter(); rig.set(into.shot); rig.go(rest, PACE.settle); }, until: () => !rig.moving });
+    }
+    focusOverride = null;
+    transition = { skip: () => skipShots() };
+    runShots(steps, settle);
+  }
+
+  function changeScene(to, arrived) {
+    const leaving = active;
+    const dest = sceneFor(to.scene);
     const g = post.grade.uniforms;
-    const out = shotFor(active.api, from);
-    const leaving = active.api;
-    const cut = () => {
-    // a scene that carried the camera out (riding the train) keeps it where it is through the dip
-    if (!leaving.keepsCamera) rig.go(backOff(out, -0.06), 0.8);
-    tween(1, 0, 0.75, v => (g.exposure.value = v));
-    if (!reduced) tween(1.3, 0.45, 0.75, v => (g.sweep.value = v));
-    setTimeout(() => {
-      leaving.reset?.();
-      activate(to.scene);
-      showStop();
-      const shot = shotFor(active.api, to);
-      rig.set(active.api.entryShot && !reduced ? active.api.entryShot(portrait()) : backOff(shot, 0.12));
-      rig.go(shot, active.api.entryShot ? 2.4 : 1.4, arrived);
-      // a line of subtitle as the new shot begins (not over the menu, which is read, not watched)
-      const landed = current;
-      if (!to.read && to.subtitle) setTimeout(() => { if (current === landed && !document.body.classList.contains("reading")) subtitle(to.subtitle); }, reduced ? 200 : 700);
-      tween(0, 1, 0.9, v => (g.exposure.value = v));
-      if (!reduced) tween(0.45, -0.3, 0.8, v => (g.sweep.value = v), () => (g.sweep.value = -1));
-    }, reduced ? 250 : 760);
+    const p = portrait();
+    const out = leaving.api.portal?.(p);
+    const into = dest.api.portal?.(p);
+    const rest = shotFor(dest.api, to);
+    const landed = current;
+    interaction.enabled = false;
+    caption.hide();
+    const settle = () => {
+      arrived();
+      // the subtitle once the camera has come to rest (not over the menu, which is read, not watched)
+      if (!to.read && to.subtitle) setTimeout(() => {
+        if (current === landed && mode === "rest" && !document.body.classList.contains("reading")) subtitle(to.subtitle);
+      }, reduced ? 100 : 350);
     };
-    if (selected) putBack({ focus: false });
-    if (leaving.exit && !reduced) leaving.exit(cut, { rig, portrait: portrait() }); // the scene drives its own way out
-    else if (leaving.exitShot && !reduced) rig.go(leaving.exitShot(portrait()), 1.5, cut);
-    else cut();
+
+    // reduced motion, or a scene without a window: a plain cut through a short dip
+    if (reduced || !out || !into) {
+      let swapped = false;
+      const swap = () => {
+        if (swapped) return;
+        swapped = true;
+        dropTweens("dip");
+        leaving.api.reset?.();
+        activate(to.scene, { settled: true });
+        showStop();
+        rig.set(rest);
+        tween(g.exposure.value, 1, 0.3, v => (g.exposure.value = v), settle, "dip");
+      };
+      transition = { skip: () => { swap(); dropTweens("dip"); g.exposure.value = 1; settle(); } };
+      tween(1, 0, 0.25, v => (g.exposure.value = v), swap, "dip");
+      return;
+    }
+
+    if (!warmed.has(dest)) warm(dest, into.shot); // normally done while loading
+    let cutDone = false, sweepAt = null;
+    const cut = () => {
+      if (cutDone) return;
+      cutDone = true;
+      leaving.api.reset?.();
+      rig.sway = 0;
+      activate(to.scene, { settled: true });
+      showStop();
+      rig.set(into.shot);
+      focusDist = into.shot.position.distanceTo(into.glass);
+      focusOverride = into.glass;
+      setTimeout(() => { if (focusOverride === into.glass) focusOverride = null; }, 400); // then focus pulls into the room
+      rig.go(rest, PACE.settle, settle, { v0 });
+    };
+    transition = {
+      skip: () => {
+        clearTimeout(sweepAt);
+        dropTweens("sweep");
+        g.sweep.value = -1;
+        cut();
+        rig.finish();
+      },
+    };
+    let v0 = 0;
+
+    // to or from the station: by train, as a few held shots
+    if (leaving.api.journey || dest.api.journey || leaving.api.exterior || dest.api.exterior) { journey(leaving, dest, to, rest, out, into, p, settle); return; }
+
+    const from = rig.shot;
+    const d1 = from.position.distanceTo(out.shot.position);
+    const d2 = into.shot.position.distanceTo(rest.position);
+    const toward = (a, b, s) => Math.sign(new THREE.Vector3().subVectors(b, a).dot(viewDir(s)));
+    const same = toward(from.position, out.shot.position, out.shot) === toward(into.shot.position, rest.position, into.shot);
+    const carry = same && !dest.api.alight ? PACE.carry : 0; // metres a second through the cut (not into a held shot)
+    const T1 = THREE.MathUtils.clamp(PACE.approach + d1 * 0.12, PACE.approach, PACE.approach + 0.4);
+    const v1 = d1 > 0.05 ? (carry * T1) / d1 : 0;
+    v0 = d2 > 0.05 ? (carry * PACE.settle) / d2 : 0;
+
+    leaving.api.exitCue?.(T1);
+    focusOverride = out.glass;
+
+    // light across the glass, its middle passing at the cut: a car's headlights between the
+    // restaurant and home, a faint reflection elsewhere. It motivates the cut; it doesn't hide it
+    const headlights = out.light === "headlights" && into.light === "headlights";
+    g.sweepGain.value = headlights ? 0.34 : 0.14;
+    g.sweepWidth.value = headlights ? 3.2 : 4.5;
+    const SW = headlights ? 1.1 : 0.9;
+    sweepAt = setTimeout(() => tween(1.45, -0.45, SW, v => (g.sweep.value = v), () => (g.sweep.value = -1), "sweep"), Math.max(0, (T1 - SW / 2) * 1000));
+    rig.go(out.shot, T1, cut, { v1 });
   }
 
   // ---- holding things
@@ -337,7 +530,7 @@ async function main() {
       document.body.classList.add("reading");
       interaction.setHits([a.reader.left, a.reader.right]);
       if (instant) { rig.set(shot); reader.open(a.reader); return; }
-      rig.go(shot, 1.8); // a little slower, so the camera follows the menu up rather than jumping to it
+      rig.go(shot, PACE.read); // a little slower, so the camera follows the menu up rather than jumping to it
       setTimeout(() => { if (selected === a && mode === "examine") reader.open(a.reader); }, reduced ? 0 : 1150);
       return;
     }
@@ -345,11 +538,12 @@ async function main() {
     document.body.classList.add("examining");
     history.replaceState(null, "", `#${a.id}`);
     if (instant) { rig.set(shot); panel.open(a.panel()); return; }
-    rig.go(shot, 1.6);
+    rig.go(shot, PACE.examine);
     setTimeout(() => { if (selected === a && mode === "examine") panel.open(a.panel()); }, reduced ? 0 : 900);
   }
 
-  function putBack({ focus = true } = {}) {
+  // move: false leaves the camera where it is (something else is about to move it)
+  function putBack({ focus = true, move = true } = {}) {
     if (mode !== "examine") return;
     const a = selected;
     a.release?.();
@@ -359,7 +553,7 @@ async function main() {
     reader.close();
     document.body.classList.remove("examining", "reading");
     interaction.setHits(stopArtifacts().flatMap(x => x.hits || [x.hit]));
-    rig.go(shotFor(active.api, stops[current]), 1.4);
+    if (move) rig.go(shotFor(active.api, stops[current]), PACE.putBack);
     history.replaceState(null, "", `#${stops[current].id}`);
     if (focus) document.querySelector(`#artifact-list a[href="#${CSS.escape(a.id)}"]`)?.focus({ preventScroll: true });
   }
@@ -370,7 +564,7 @@ async function main() {
     interaction.enabled = false;
     panel.close();
     reader.close();
-    rig.go(a.leave(), 1.2);
+    rig.go(a.leave(), PACE.leave);
     setTimeout(() => fade.classList.add("in"), reduced ? 0 : 450);
     setTimeout(() => { location.href = href; }, reduced ? 350 : 1250);
   }
@@ -390,7 +584,7 @@ async function main() {
     if (now < wheelLock) return;
     wheelAcc += e.deltaY;
     if (Math.abs(wheelAcc) > 60) {
-      goTo(current + Math.sign(wheelAcc), { queue: false });
+      goTo(current + Math.sign(wheelAcc));
       wheelAcc = 0;
       wheelLock = now + 1300;
     }
@@ -400,11 +594,14 @@ async function main() {
   canvas.addEventListener("touchend", e => {
     if (touchY === null || mode !== "rest") return;
     const dy = touchY - e.changedTouches[0].clientY;
-    if (Math.abs(dy) > 60) goTo(current + Math.sign(dy), { queue: false });
+    if (Math.abs(dy) > 60) goTo(current + Math.sign(dy));
     touchY = null;
   }, { passive: true });
+  // a click during a scene change skips to its end; that click doesn't also pick something up
+  canvas.addEventListener("pointerdown", () => { if (mode === "moving" && transition) { transition.skip(); interaction.down = null; } });
   window.addEventListener("keydown", e => {
     if (e.target.closest("input, textarea")) return;
+    if (mode === "moving" && transition && ["Escape", "Enter", " "].includes(e.key)) { e.preventDefault(); transition.skip(); return; }
     if (mode === "examine" && selected?.reader) {
       if (e.key === "Escape") putBack();
       if (e.key === "ArrowRight" || e.key === "PageDown") { e.preventDefault(); turnPage(1); }
@@ -484,7 +681,11 @@ async function main() {
   setTimeout(() => {
     [...new Set(stops.map(s => s.scene))].forEach((name, k) => setTimeout(() => {
       const b = sceneFor(name);
-      if (renderer.compileAsync) renderer.compileAsync(b.scene, camera).catch(() => {});
+      const stop = stops.find(s => s.scene === name);
+      warm(b, shotFor(b.api, stop));
+      const w = b.api.portal?.(portrait());
+      if (w) warm(b, w.shot);
+      if (b.api.exterior) warm(b, b.api.exterior.shot(portrait())); // the place from outside, for arriving
     }, k * 400));
   }, 1200);
 
@@ -500,6 +701,7 @@ async function main() {
       tw.set(tw.from + (tw.to - tw.from) * k);
       if (tw.t === 1) { tweens.splice(i, 1); tw.done?.(); }
     }
+    tickShots(dt);
     rig.parallax = mode === "examine" ? 0.004 : 0.01;
     rig.update(dt, t);
     // scenes also hear what is under the pointer, so things can answer it physically
@@ -507,13 +709,15 @@ async function main() {
 
     // focus: slowly pull to whatever is being looked at
     const subject = selected || hovered;
-    const point = subject ? subject.focus : active.api.restFocus(stops[current].shot);
+    const point = focusOverride || (subject ? subject.focus : active.api.restFocus(stops[current].shot));
     camera.getWorldDirection(forward);
     const want = tmp.subVectors(point, camera.position).dot(forward);
-    focusDist += (want - focusDist) * Math.min(1, dt * 2.6);
+    if (snapFocus) { focusDist = want; snapFocus = false; }
+    else focusDist += (want - focusDist) * Math.min(1, dt * 2.6);
     // blur strength per meter off focus; scenes measured in meters (the station) want much less
     const dof = active.api.dof || { rest: 0.018, examine: 0.05 };
-    const wantAperture = mode === "examine" ? dof.examine : dof.rest;
+    // travelling between places the frame stays sharp: continuity comes from what's in it, not blur
+    const wantAperture = mode === "examine" ? dof.examine : mode === "moving" ? Math.min(dof.rest, 0.003) : dof.rest;
     aperture += (wantAperture - aperture) * Math.min(1, dt * 2);
     post.setFocus(focusDist, aperture);
 

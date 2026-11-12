@@ -78,8 +78,13 @@ body[data-title="1"]:not(.moving):not(.examining) .site-header :is(.site-name, .
   transform: translateX(-50%);
   max-width: min(90vw, 52ch); text-align: center;
   font-family: var(--sans); font-size: clamp(17px, 1.5vw, 21px); line-height: 1.35; letter-spacing: 0.01em;
-  color: #e6cf72;
-  text-shadow: 0 0 2px rgb(0 0 0 / 0.95), 0 1px 3px rgb(0 0 0 / 0.9), 0 0 1px rgb(0 0 0);
+  color: #ecd57a;
+  font-weight: 500;
+  /* a hard edge like burned-in print subtitles, then a soft halo, so the line holds over glare */
+  text-shadow: 0 0 1px rgb(0 0 0), 0 1px 1px rgb(0 0 0 / 0.95), 0 0 6px rgb(0 0 0 / 0.75), 0 0 14px rgb(0 0 0 / 0.5);
+  /* and a soft dark band behind it, wider than the words, with no visible edge */
+  padding: 0.55em 2.2em;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.55), rgb(0 0 0 / 0.3) 60%, rgb(0 0 0 / 0));
   opacity: 0; transition: opacity 0.7s ease;
   pointer-events: none;
 }

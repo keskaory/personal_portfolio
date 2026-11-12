@@ -5,7 +5,7 @@
 // booth, the kitchen hatch: frosted glass, warm light, the cooks' shapes
 // moving behind it. Outside, sign light from the street, red and green.
 // The menu holds the projects and experience.
-// Leaving: the camera lifts to the rain on the window (the match cut).
+// Leaving: the camera lifts off the table to the window as a car passes (the match cut).
 //
 // Coordinates: meters; the floor at y = 0, the table top at y = 0.74, the
 // window wall at x = -1.0, the camera looking toward -x.
@@ -13,6 +13,8 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { rainWindow } from "../objects/rain-window.js";
+import { windowShot } from "../core/portal.js";
+import { buildStreet } from "./street.js";
 import { concrete, neonCity } from "../objects/station-textures.js";
 import { createMenu } from "../objects/menu.js";
 import { makeHandle, pose } from "../core/handling.js";
@@ -172,9 +174,9 @@ function brothTexture() {
   const [c, ctx] = cv(512, 512);
   const rand = seeded(421);
   const g = ctx.createRadialGradient(256, 256, 20, 256, 256, 256);
-  g.addColorStop(0, "#c8893a");
-  g.addColorStop(0.7, "#a2621c");
-  g.addColorStop(1, "#6e3f10");
+  g.addColorStop(0, "#b8894c"); // a clear beef broth: amber-brown, not orange
+  g.addColorStop(0.7, "#946630");
+  g.addColorStop(1, "#5e3f1a");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 512, 512);
   for (let i = 0; i < 260; i++) {
@@ -224,7 +226,7 @@ function pho() {
   under.rotation.x = -Math.PI / 2;
   under.position.y = 0.048;
   g.add(under);
-  const mid = new THREE.Mesh(new THREE.CircleGeometry(0.093, 40), new THREE.MeshStandardMaterial({ color: "#9a5a1c", transparent: true, opacity: 0.35, roughness: 0.3, depthWrite: false }));
+  const mid = new THREE.Mesh(new THREE.CircleGeometry(0.093, 40), new THREE.MeshStandardMaterial({ color: "#86602f", transparent: true, opacity: 0.35, roughness: 0.3, depthWrite: false }));
   mid.rotation.x = -Math.PI / 2;
   mid.position.y = 0.056;
   g.add(mid);
@@ -248,24 +250,56 @@ function pho() {
     }
     return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.00125, 4);
   }, () => {}, noodle, { cast: false }));
-  // pulled chicken: torn, fibrous pieces in three tones, a few with skin
-  const tones = [
-    [new THREE.MeshStandardMaterial({ color: "#dfcfb0", roughness: 0.72 }), 12],
-    [new THREE.MeshStandardMaterial({ color: "#c9ae84", roughness: 0.66 }), 7],
-    [new THREE.MeshStandardMaterial({ color: "#e0c487", roughness: 0.38 }), 4], // skin
-  ];
-  tones.forEach(([mat, n]) => g.add(merged(n, () => {
-    const piece = new THREE.CapsuleGeometry(0.004 + rand() * 0.002, 0.02 + rand() * 0.025, 3, 7);
-    // taper one end, as a torn piece does
-    const p = piece.attributes.position;
-    for (let i = 0; i < p.count; i++) { const k = 0.55 + 0.45 * (p.getY(i) / 0.03 + 0.5); p.setX(i, p.getX(i) * k); p.setZ(i, p.getZ(i) * k); }
-    return rough(piece, 0.0024, rand);
+  // the beef. Rare slices laid on top, cut paper-thin: pink in the middle, already greying at
+  // the edges where the hot broth has cooked them, rippled as they relax. Brisket underneath them,
+  // in strips with a band of pale fat. Two beef balls, halved.
+  const [rc, rx] = cv(128, 128);
+  const rg = rx.createRadialGradient(64, 60, 6, 64, 64, 64);
+  rg.addColorStop(0, "#b9564a"); rg.addColorStop(0.4, "#a65a4e"); rg.addColorStop(0.72, "#7f6052"); rg.addColorStop(1, "#665044");
+  rx.fillStyle = rg; rx.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 70; i++) { rx.strokeStyle = `rgba(${rand() < 0.5 ? "240,200,190" : "90,40,35"},${0.12 + rand() * 0.15})`; rx.lineWidth = 1; rx.beginPath(); const y = rand() * 128; rx.moveTo(0, y); rx.bezierCurveTo(40, y + (rand() - 0.5) * 20, 90, y + (rand() - 0.5) * 20, 128, y + (rand() - 0.5) * 10); rx.stroke(); } // the grain
+  const rareTex = tex(rc);
+  const rare = new THREE.MeshStandardMaterial({ map: rareTex, roughness: 0.42, side: THREE.DoubleSide });
+  g.add(merged(7, () => {
+    const geo = new THREE.CircleGeometry(0.026, 18);
+    const p = geo.attributes.position;
+    const k = rand() * 6.28;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), r = Math.hypot(x, y);
+      const a = Math.atan2(y, x);
+      const edge = 1 + 0.12 * Math.sin(a * 3 + k) + 0.06 * Math.sin(a * 7 + k * 2); // an uneven, hand-cut outline
+      p.setX(i, x * edge * 1.25); p.setY(i, y * edge * 0.8);
+      p.setZ(i, Math.sin(x * 160 + k) * 0.0022 + r * r * 4.0); // rippled, the edges curling up
+    }
+    geo.computeVertexNormals();
+    return geo;
   }, d => {
-    const a = rand() * 6.28, r = 0.01 + rand() * 0.048;
-    d.position.set(Math.cos(a) * r + 0.012, 0.067 + rand() * 0.006, Math.sin(a) * r - 0.012);
-    d.rotation.set(Math.PI / 2 + (rand() - 0.5) * 0.5, (rand() - 0.5) * 0.5, rand() * 6.28);
-    d.scale.set(1 + rand() * 0.7, 1, 0.5 + rand() * 0.3);
-  }, mat)));
+    const a = rand() * 6.28, r = 0.015 + rand() * 0.045;
+    d.position.set(Math.cos(a) * r + 0.008, 0.0665 + rand() * 0.004, Math.sin(a) * r - 0.006);
+    d.rotation.set(-Math.PI / 2 + (rand() - 0.5) * 0.25, (rand() - 0.5) * 0.25, rand() * 6.28);
+  }, rare, { cast: false }));
+  const [bc, bx2] = cv(64, 32);
+  bx2.fillStyle = "#7a5a46"; bx2.fillRect(0, 0, 64, 32);
+  bx2.fillStyle = "#e8dcc4"; bx2.fillRect(0, 0, 64, 7);          // the fat
+  bx2.fillStyle = "rgba(255,240,220,0.35)"; bx2.fillRect(0, 7, 64, 2);
+  for (let i = 0; i < 40; i++) { bx2.fillStyle = `rgba(40,25,15,${rand() * 0.25})`; bx2.fillRect(rand() * 64, 9 + rand() * 23, 6 + rand() * 12, 1); }
+  const brisket = new THREE.MeshStandardMaterial({ map: tex(bc), roughness: 0.5 });
+  g.add(merged(4, () => rough(new THREE.BoxGeometry(0.042, 0.0045, 0.017, 6, 1, 2), 0.0009, rand), d => {
+    const a = rand() * 6.28, r = 0.02 + rand() * 0.04;
+    d.position.set(Math.cos(a) * r - 0.01, 0.0625, Math.sin(a) * r + 0.01);
+    d.rotation.set((rand() - 0.5) * 0.3, rand() * 6.28, (rand() - 0.5) * 0.2);
+  }, brisket, { cast: false }));
+  const ballOut = new THREE.MeshStandardMaterial({ color: "#6e5446", roughness: 0.6 });
+  const ballCut = new THREE.MeshStandardMaterial({ color: "#a08670", roughness: 0.75 });
+  [[-0.045, -0.035, 0.4], [-0.058, 0.0, 2.1]].forEach(([x, z, ry]) => {
+    const half = new THREE.Group();
+    half.add(new THREE.Mesh(new THREE.SphereGeometry(0.012, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), ballOut));
+    const face = new THREE.Mesh(new THREE.CircleGeometry(0.012, 14), ballCut);
+    face.rotation.x = Math.PI / 2; half.add(face);
+    half.rotation.set(Math.PI - 0.3, ry, 0); // the dome down in the broth, the cut face up, tipped toward you
+    half.position.set(x, 0.0675, z);
+    g.add(half);
+  });
   // scallion: green rings and a few pale ones from near the root
   const scGreen = new THREE.MeshStandardMaterial({ color: "#5fa83c", roughness: 0.45, side: THREE.DoubleSide });
   const scPale = new THREE.MeshStandardMaterial({ color: "#dfe9c2", roughness: 0.45, side: THREE.DoubleSide });
@@ -573,7 +607,8 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   scene.add(box(0.05, 1.22, 0.05, frame, -1.0, 1.5, 0.9, false));
   scene.add(box(0.05, 0.05, 1.85, frame, -1.0, 0.9, 0, false));
   scene.add(box(0.05, 0.05, 1.85, frame, -1.0, 2.1, 0, false));
-  const pane = rainWindow(1.8, 1.2, { brightness: 1.1, depth: 0.35, fog: 0.45, city: neonCity({ blur: 16, signs: 22 }) });
+  // at night the glass gives back a dim reflection of the lit room
+  const pane = rainWindow(1.8, 1.2, { brightness: 1.1, depth: 0.35, fog: 0.45, city: neonCity({ blur: 16, signs: 22 }), reflect: 0.55, tubes: { y: 9, d: [1, 2] } });
   pane.position.set(-1.02, 1.5, 0);
   pane.rotation.y = Math.PI / 2;
   scene.add(pane);
@@ -586,6 +621,13 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   upper.position.set(0.5, 2.0, -1.2);
   scene.add(upper);
   scene.add(box(3.2, 0.03, 0.02, new THREE.MeshStandardMaterial({ color: "#8c2a20", roughness: 0.5 }), 0.5, 1.25, -1.19, false)); // a red dado rail
+  // the room's far end, behind where you sit: never in your own view, but seen from the street
+  // through the window, so the room carries on in there rather than stopping in the dark
+  const backTiles = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 1.25), tiles);
+  backTiles.position.set(2.1, 0.625, 0.4); backTiles.rotation.y = -Math.PI / 2;
+  const backJade = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 1.45), jade);
+  backJade.position.set(2.1, 1.975, 0.4); backJade.rotation.y = -Math.PI / 2;
+  scene.add(backTiles, backJade, box(0.02, 0.03, 3.2, new THREE.MeshStandardMaterial({ color: "#8c2a20", roughness: 0.5 }), 2.09, 1.25, 0.4, false));
   const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), new THREE.MeshStandardMaterial({ color: "#221f1b", roughness: 0.9 }));
   ceiling.rotation.x = Math.PI / 2;
   ceiling.position.set(0.5, 2.7, 0);
@@ -652,6 +694,12 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
       const back = cushion(0.53, 0.56, 0.15, { belly: 0.022, faceSign: -s, seed: 51 + k + (s > 0 ? 10 : 0) });
       back.position.set(-0.52 + dx, 0.84, z + s * 0.205);
       back.rotation.x = s * 0.1;
+      // the far booth's window-end seat was re-covered at some point: the same red vinyl, a
+      // shade newer and glossier than the others, which have faded together
+      if (s < 0 && k === 0) {
+        const newer = seatMat.clone(); newer.color = new THREE.Color(1.07, 0.98, 0.96); newer.roughness = 0.4;
+        seat.material = newer;
+      }
       scene.add(seat, back);
     });
     // the dark crease where seat meets back, and under the seat's front edge
@@ -717,6 +765,14 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
     scene.add(m);
     return m;
   };
+  // an old cup ring that never quite came out of the formica
+  const [ringC, ringX] = cv(64, 64);
+  ringX.strokeStyle = "rgba(95,60,25,0.28)"; ringX.lineWidth = 3; ringX.beginPath(); ringX.arc(32, 32, 24, 0.3, 5.9); ringX.stroke();
+  ringX.strokeStyle = "rgba(95,60,25,0.12)"; ringX.lineWidth = 6; ringX.beginPath(); ringX.arc(33, 31, 22, 2.0, 4.2); ringX.stroke();
+  const cupRing = new THREE.Mesh(new THREE.PlaneGeometry(0.085, 0.085), new THREE.MeshBasicMaterial({ map: tex(ringC), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
+  cupRing.rotation.x = -Math.PI / 2; cupRing.rotation.z = 0.8;
+  cupRing.position.set(-0.19, TABLE_Y + 0.0012, -0.24); // clear of the menu and the saucer
+  scene.add(cupRing);
   blot(-0.58, 0.04, 0.2, 0.2);        // the bowl's foot
   blot(-0.41, -0.15, 0.17, 0.17, 0.6); // the saucer
   blot(-0.87, -0.2, 0.24, 0.27);      // the caddy
@@ -742,13 +798,23 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   const tilt = 0.16;
   const heldBasis = new THREE.Matrix4().makeBasis(V(0, 0, -1), V(Math.cos(tilt), Math.sin(tilt), 0), V(Math.sin(tilt), -Math.cos(tilt), 0));
   const held = { position: V(-0.3, 1.1, 0.0), rotation: new THREE.Euler().setFromRotationMatrix(heldBasis) };
+  // Picked up the way a hand takes it: the far edge tips up off the formica, hinged on the near
+  // edge, then it lifts clear and turns to you, the tip easing out as it goes. Put down, it
+  // comes back to the table and the far edge settles last.
+  const LEAD = 0.22, TIP = 0.32;
+  let pickTip = 0;
   const menuHandle = makeHandle(menu.group, {
     home: resting,
     held,
     lift: 0.1, // straight up off the table first, then toward you; the food is never in its path
-    duration: 1.2,
-    // it opens as it reaches you
-    extra: k => menu.setOpen(k > 0.72),
+    duration: 1.4,
+    lead: LEAD,
+    extra: (k, p) => {
+      const up = THREE.MathUtils.smoothstep(p, 0, LEAD);       // tipping up, in place
+      const out = 1 - THREE.MathUtils.smoothstep(k, 0.05, 0.55); // easing flat again in the air
+      pickTip = TIP * up * out;
+      menu.setOpen(k > 0.72); // it opens as it reaches you
+    },
   });
   menu.hits[0].userData.id = "magazine";
   menu.left.userData.id = "magazine:prev";
@@ -844,6 +910,9 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
   const artifacts = [menuArtifact];
   artifacts.forEach(a => { a.focus = new THREE.Vector3(); });
 
+  // the street outside, for arriving and leaving
+  const outside = buildStreet(scene, { reducedMotion });
+
   let carT = 4, hoverTip = 0;
   const restFocusPoint = V(-0.6, TABLE_Y + 0.06, 0.0);
   return {
@@ -853,19 +922,27 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
       rest: { position: V(0.62, 1.34, 0.44), target: V(-0.62, 0.93, -0.18), fov: 40 },
       restPortrait: { position: V(0.72, 1.42, 0.3), target: V(-0.6, 0.84, -0.08), fov: 54 },
     },
-    // arriving off the train: open close on the rain on the glass, then pull back to the table
-    entryShot: () => ({ position: V(-0.62, 1.5, 0.08), target: V(-1.05, 1.52, 0.0), fov: 34 }),
-    // leaving: lift to the rain on the window, the shot the apartment opens on
-    exitShot: () => ({ position: V(-0.55, 1.5, 0.05), target: V(-1.05, 1.55, 0.0), fov: 34 }),
+    // scene changes pass through the window: arriving, the cut lands square on it and the camera
+    // comes down onto the table; leaving, it lifts off the table back to it
+    portal: portrait => ({ ...windowShot(V(-1.02, 1.5, 0), V(1, 0, 0), 1.2, portrait), light: "headlights" }),
+    // leaving: a car's headlights pass outside just as you reach the glass
+    exitCue(seconds) { if (!reducedMotion) carT = seconds + 0.7; },
+    // seen from outside, across the street: the shot that establishes the place
+    // seen from across the street, arriving or leaving: a car goes by. Once inside, the same
+    // car's light carries on across the window
+    exterior: { shot: outside.shot, cue: kind => (kind === "inside" ? (carT = reducedMotion ? carT : 1.0) : outside.passCar()) },
     restFocus: () => restFocusPoint,
     dof: { rest: 0.012, examine: 0.022 },
     lights: { attention },
     update(t, dt, held, hovered) {
+      outside.update(t, dt);
       menuHandle.update(dt, held === menuArtifact, reducedMotion);
       // pointed at, it tips forward out of its place, as if about to be taken
       hoverTip += ((hovered === menuArtifact && menuHandle.progress === 0 ? 1 : 0) - hoverTip) * Math.min(1, dt * 7);
-      menu.tip.rotation.x = hoverTip * 0.12; // the far edge lifts off the table, as a hand would start to
-      menuShadow.material.opacity = 0.55 * (1 - Math.min(1, menuHandle.progress * 3));
+      menu.tip.rotation.x = Math.max(hoverTip * 0.12, pickTip); // the far edge lifts off the table, as a hand would start to
+      // the shadow stays while the near edge is still down, thins as the far edge lifts, then goes
+      const off = Math.max(0, menuHandle.progress - LEAD) / (1 - LEAD);
+      menuShadow.material.opacity = 0.55 * (1 - pickTip * 0.6) * (1 - Math.min(1, off * 3));
       menu.group.updateMatrixWorld();
       menuArtifact.focus.setFromMatrixPosition(menu.group.matrixWorld);
       menu.update(dt);

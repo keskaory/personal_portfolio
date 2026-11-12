@@ -250,6 +250,12 @@ export function buildStreet(scene, { reducedMotion = false } = {}) {
   g.add(car, car.target);
   let carT = -1;
 
+  // the street's own lights only matter in the shot from outside; inside, each one would still
+  // cost every pixel of the room, so they're switched on only for that shot
+  const outsideLights = [lamp, doorLight, car];
+  const setLit = on => { g.visible = on; outsideLights.forEach(l => (l.visible = on)); }; // the whole street, only for its shot
+  setLit(false);
+
   const rain = rainLines(1500, [-9.5, -1.5], [-0.2, 5.0], [-6, 7]);
   g.add(rain);
 
@@ -262,6 +268,7 @@ export function buildStreet(scene, { reducedMotion = false } = {}) {
     shot: portrait => portrait
       ? { position: V(-6.3, 1.4, 0.75), target: V(-1.1, 1.62, 0.35), fov: 54 }
       : { position: V(-6.8, 1.4, 1.05), target: V(-1.1, 1.62, 0.45), fov: 40 },
+    setLit,
     passCar() { if (!reducedMotion) carT = 0; },
     update(t, dt) {
       rain.material.uniforms.time.value = reducedMotion ? 0 : t;

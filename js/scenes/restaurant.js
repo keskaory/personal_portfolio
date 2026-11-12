@@ -930,7 +930,7 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
     // seen from outside, across the street: the shot that establishes the place
     // seen from across the street, arriving or leaving: a car goes by. Once inside, the same
     // car's light carries on across the window
-    exterior: { shot: outside.shot, cue: kind => (kind === "inside" ? (carT = reducedMotion ? carT : 1.0) : outside.passCar()) },
+    exterior: { shot: outside.shot, setLit: outside.setLit, cue: kind => (kind === "inside" ? (carT = reducedMotion ? carT : 1.0) : outside.passCar()) },
     restFocus: () => restFocusPoint,
     dof: { rest: 0.012, examine: 0.022 },
     lights: { attention },

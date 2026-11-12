@@ -3,7 +3,8 @@
 import * as THREE from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { BokehPass } from "three/addons/postprocessing/BokehPass.js";
+import { Pass, FullScreenQuad } from "three/addons/postprocessing/Pass.js";
+import { BokehShader } from "three/addons/shaders/BokehShader.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 
@@ -69,13 +70,47 @@ const GradeShader = {
   `,
 };
 
+// Depth of field from the depth the main render already wrote. (three's BokehPass draws the
+// whole scene a second time just to get depth, which doubled the cost of every frame it ran.)
+class DepthBokehPass extends Pass {
+  constructor(camera, { focus, aperture, maxblur }) {
+    super();
+    this.camera = camera;
+    const uniforms = THREE.UniformsUtils.clone(BokehShader.uniforms);
+    uniforms.focus.value = focus;
+    uniforms.aperture.value = aperture;
+    uniforms.maxblur.value = maxblur;
+    this.uniforms = uniforms;
+    this.fsQuad = new FullScreenQuad(new THREE.ShaderMaterial({
+      defines: { DEPTH_PACKING: 0, PERSPECTIVE_CAMERA: 1 },
+      uniforms, vertexShader: BokehShader.vertexShader,
+      // pixels in focus (blur under about half a pixel) skip the forty samples and pass through
+      fragmentShader: BokehShader.fragmentShader.replace(
+        "vec2 dofblur9 = dofblur * 0.9;",
+        "if ( abs( dofblur.x ) * 0.4 < 0.00045 ) { gl_FragColor = texture2D( tColor, vUv ); return; }\n\t\t\tvec2 dofblur9 = dofblur * 0.9;",
+      ),
+    }));
+  }
+  render(renderer, writeBuffer, readBuffer) {
+    this.uniforms.tColor.value = readBuffer.texture;
+    this.uniforms.tDepth.value = readBuffer.depthTexture;
+    this.uniforms.nearClip.value = this.camera.near;
+    this.uniforms.farClip.value = this.camera.far;
+    renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);
+    this.fsQuad.render(renderer);
+  }
+  setSize(w, h) { this.uniforms.aspect.value = w / h; }
+}
+
 export function createPost(renderer, scene, camera, { depthOfField = true } = {}) {
   const size = renderer.getSize(new THREE.Vector2());
-  const target = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: 4 });
+  // both of the composer's buffers carry a depth texture, so the depth of field can read it
+  const target = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: 4, depthTexture: new THREE.DepthTexture(size.x, size.y) });
   const composer = new EffectComposer(renderer, target);
+  if (!composer.renderTarget2.depthTexture || composer.renderTarget2.depthTexture === target.depthTexture) composer.renderTarget2.depthTexture = new THREE.DepthTexture(size.x, size.y);
   composer.addPass(new RenderPass(scene, camera));
 
-  const bokeh = new BokehPass(scene, camera, { focus: 0.6, aperture: 0.02, maxblur: 0.012 });
+  const bokeh = new DepthBokehPass(camera, { focus: 0.6, aperture: 0.02, maxblur: 0.012 });
   bokeh.enabled = depthOfField;
   composer.addPass(bokeh);
 
@@ -87,15 +122,17 @@ export function createPost(renderer, scene, camera, { depthOfField = true } = {}
     composer,
     bokeh,
     grade,
+    allowDof: depthOfField,
     setFocus(distance, aperture) {
       bokeh.uniforms.focus.value = distance;
       if (aperture !== undefined) bokeh.uniforms.aperture.value = aperture;
+      // the blur pass costs the same whether it blurs or not: skip it when there's nothing to blur
+      bokeh.enabled = this.allowDof && bokeh.uniforms.aperture.value > 0.0012;
     },
-    setSize(w, h) { composer.setSize(w, h); },
+    setSize(w, h) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); }, // follow the renderer's resolution
     // switch which scene is drawn
     setScene(scene) {
       composer.passes[0].scene = scene;
-      bokeh.scene = scene;
     },
     render(time) {
       grade.uniforms.time.value = time;

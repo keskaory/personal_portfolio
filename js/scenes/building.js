@@ -91,6 +91,7 @@ export function buildBuilding(scene, { reducedMotion = false } = {}) {
   g.add(ground);
   const lamp = new THREE.SpotLight("#a9dccf", 40, 16, 0.7, 0.8, 1.4);
   lamp.position.set(3.2, -5.5, -4.2); lamp.target.position.set(-0.5, -9, -3);
+  lamp.visible = false; // on only for the shot from the alley
   g.add(lamp, lamp.target);
   add(new THREE.BoxGeometry(0.4, 0.1, 0.2), grille, 3.2, -5.4, -4.2);
   add(new THREE.BoxGeometry(0.34, 0.02, 0.14), new THREE.MeshBasicMaterial({ color: new THREE.Color("#d8fff1").multiplyScalar(1.5) }), 3.2, -5.46, -4.2);
@@ -98,6 +99,7 @@ export function buildBuilding(scene, { reducedMotion = false } = {}) {
   const rain = rainLines(1400, [-4, 5], [-10, 4], [-12, -2.6]);
   g.add(rain);
 
+  g.visible = false;
   return {
     group: g,
     // from the alley, looking up at the window: home in the middle of the frame
@@ -105,6 +107,9 @@ export function buildBuilding(scene, { reducedMotion = false } = {}) {
       ? { position: V(0.9, -6.4, -10.2), target: V(-0.3, 1.2, -2.0), fov: 54 }
       : { position: V(1.4, -6.6, -10.8), target: V(-0.3, 1.0, -2.0), fov: 40 },
     // how much of the lamp shows on the glass, 0..1
+    // the whole outside exists only for its shot: from inside it's all behind the walls, and drawing
+    // it anyway costs more than the room itself
+    setLit(on) { g.visible = on; lamp.visible = on; },
     glow(k) { glow.material.opacity = 0.55 * k; },
     update(t) {
       rain.material.uniforms.time.value = reducedMotion ? 0 : t;

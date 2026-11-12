@@ -209,6 +209,10 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
   key.shadow.mapSize.set(2048, 2048);
   key.shadow.bias = -0.0004;
   key.shadow.radius = 4;
+  // nothing in its light moves except the letter and ticket when you pick them up, so its shadow
+  // map is drawn once and redrawn only then, not every frame
+  key.shadow.autoUpdate = false;
+  key.shadow.needsUpdate = true;
   scene.add(key, key.target);
   scene.add(new THREE.HemisphereLight("#2a4540", "#0b0d0c", 0.45)); // little fill: the practical lights carry the scene
   const cityGlow = new THREE.DirectionalLight("#ff9a6a", 0.35); // the street's sodium and sign light from across the tracks
@@ -453,6 +457,8 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
         train.motion = m; rig.sway = m * 0.6;
       },
       rideLength: RIDE.through,
+      // for preloading: the passing lamp's light on or off, so both are ready before they're needed
+      setPassing(on) { train.passingLight.visible = on; },
       // the passing lamp at its brightest across the window: the moment to cut on
       get lampPeak() { return train.lampPhase > 0.42 && train.lampPhase < 0.58; },
       // arriving: stopped at the platform, the doors opening
@@ -471,7 +477,11 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
     },
     update(t, dt, held, hovered) {
       artifacts.forEach(a => {
-        if (a.handle) a.handle.update(dt, a === held, reducedMotion);
+        if (a.handle) {
+          const before = a.handle.progress;
+          a.handle.update(dt, a === held, reducedMotion);
+          if (a.handle.progress !== before) key.shadow.needsUpdate = true;
+        }
         a.object.updateMatrixWorld();
         a.focus.setFromMatrixPosition(a.object.matrixWorld);
       });
@@ -480,7 +490,11 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
       ["letter", "ticket"].forEach(k => {
         const a = artifacts.find(x => x.id === `station-${k}`);
         hover[k] += ((hovered === a ? 1 : 0) - hover[k]) * Math.min(1, dt * 8);
-        if (homes[k].progress === 0) a.object.position.y = homeY[k] + hover[k] * 0.012;
+        if (homes[k].progress === 0) {
+          const y = homeY[k] + hover[k] * 0.012;
+          if (Math.abs(a.object.position.y - y) > 1e-5) key.shadow.needsUpdate = true;
+          a.object.position.y = y;
+        }
       });
       hover.map += ((hovered === artifacts[2] ? 1 : 0) - hover.map) * Math.min(1, dt * 6);
       mapFace.material.color.setScalar(1.12 + hover.map * 0.18);

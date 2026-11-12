@@ -8,7 +8,7 @@
 // and every artifact has { id, stop, hit or hits, focus, caption, panel(),
 // page, examine(portrait), leave(), drag?(dx), release?() }.
 import * as THREE from "three";
-import { webglAvailable, pickQuality, createRenderer, startLoop } from "./core/renderer.js";
+import { webglAvailable, pickQuality, createRenderer, startLoop, pixelRatioFor } from "./core/renderer.js";
 import { createPost } from "./core/post.js";
 import { createEnvironment } from "./core/environment.js";
 import { CameraRig } from "./core/camera-rig.js";
@@ -66,6 +66,7 @@ async function main() {
   ]).catch(() => {});
 
   const quality = pickQuality();
+  let renderScale = 1; // lowered a step at a time if frames run slow
   const canvas = $("#scene-canvas");
   const renderer = createRenderer(canvas, quality);
   const camera = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.03, 140); // far enough to see down the platform into the tunnel
@@ -387,6 +388,8 @@ async function main() {
   function journey(leaving, dest, to, rest, out, into, p, settle) {
     const L = leaving.api, D = dest.api;
     const enter = () => { L.reset?.(); activate(to.scene, { settled: true }); showStop(); };
+    // a place's outside lights are on only for its shot from outside
+    const outside = (api, on) => { L.exterior?.setLit?.(false); D.exterior?.setLit?.(false); if (on) api.exterior.setLit?.(true); };
     const steps = [];
     if (L.journey) {
       const j = L.journey;
@@ -397,21 +400,22 @@ async function main() {
       steps.push({ start: () => j.closeDoors(), hold: 0.6 }); // they start to close: cut on that
       steps.push({ start: () => { rig.set(j.carriage(p)); j.ride(rig, D.journey ? "arrive" : "through"); }, hold: j.rideLength });
     } else if (L.exterior) {
-      steps.push({ start: () => { rig.set(L.exterior.shot(p)); L.exterior.cue("leave"); }, hold: 1.8 });
+      steps.push({ start: () => { outside(L, true); rig.set(L.exterior.shot(p)); L.exterior.cue("leave"); }, hold: 1.8 });
     } else {
       steps.push({ start: () => rig.go(out.shot, PACE.approach), until: () => !rig.moving });
     }
     if (D.journey) {
       const j = D.journey;
-      steps.push({ start: () => { enter(); rig.set(j.carriage(p)); j.ride(rig, "arrive"); }, hold: 2.4 });
+      steps.push({ start: () => { outside(null, false); enter(); rig.set(j.carriage(p)); j.ride(rig, "arrive"); }, hold: 2.4 });
       steps.push({ // the platform: stopped, doors opening, held until they're open
         start: () => { j.alight(rig); rig.set(rest); },
         until: t => j.doorsOpen && t > 0.8,
       });
     } else if (D.exterior) {
-      steps.push({ start: () => { enter(); rig.set(D.exterior.shot(p)); D.exterior.cue("arrive"); }, hold: 2.4 });
+      steps.push({ start: () => { enter(); outside(D, true); rig.set(D.exterior.shot(p)); D.exterior.cue("arrive"); }, hold: 2.4 });
       steps.push({ // inside: the existing composition, settling the last few centimetres
         start: () => {
+          outside(null, false);
           const back = viewDir(rest).multiplyScalar(-0.06);
           rig.set({ ...rest, position: rest.position.clone().add(back) });
           rig.go(rest, 1.4);
@@ -420,7 +424,7 @@ async function main() {
         until: () => !rig.moving,
       });
     } else {
-      steps.push({ start: () => { enter(); rig.set(into.shot); rig.go(rest, PACE.settle); }, until: () => !rig.moving });
+      steps.push({ start: () => { outside(null, false); enter(); rig.set(into.shot); rig.go(rest, PACE.settle); }, until: () => !rig.moving });
     }
     focusOverride = null;
     transition = { skip: () => skipShots() };
@@ -666,6 +670,7 @@ async function main() {
 
   function resize() {
     const w = innerWidth, h = innerHeight;
+    renderer.setPixelRatio(pixelRatioFor(quality, renderScale));
     renderer.setSize(w, h, false);
     post.setSize(w, h);
     camera.aspect = w / h;
@@ -685,7 +690,10 @@ async function main() {
       warm(b, shotFor(b.api, stop));
       const w = b.api.portal?.(portrait());
       if (w) warm(b, w.shot);
-      if (b.api.exterior) warm(b, b.api.exterior.shot(portrait())); // the place from outside, for arriving
+      // the place from outside, with its outside lights on; and the train under way, its passing
+      // lamp lit: drawn once now so switching those lights on later is instant
+      if (b.api.exterior) { b.api.exterior.setLit?.(true); warm(b, b.api.exterior.shot(portrait())); b.api.exterior.setLit?.(false); warm(b, shotFor(b.api, stop)); }
+      if (b.api.journey?.setPassing) { b.api.journey.setPassing(true); warm(b, b.api.journey.carriage(portrait())); b.api.journey.setPassing(false); }
     }, k * 400));
   }, 1200);
 
@@ -717,7 +725,7 @@ async function main() {
     // blur strength per meter off focus; scenes measured in meters (the station) want much less
     const dof = active.api.dof || { rest: 0.018, examine: 0.05 };
     // travelling between places the frame stays sharp: continuity comes from what's in it, not blur
-    const wantAperture = mode === "examine" ? dof.examine : mode === "moving" ? Math.min(dof.rest, 0.003) : dof.rest;
+    const wantAperture = mode === "examine" ? dof.examine : mode === "moving" ? 0 : dof.rest;
     aperture += (wantAperture - aperture) * Math.min(1, dt * 2);
     post.setFocus(focusDist, aperture);
 
@@ -737,10 +745,16 @@ async function main() {
       requestAnimationFrame(() => fade.classList.remove("in"));
     }
   }, {
+    // running slowly: render fewer pixels, a step at a time, down to about two thirds of the
+    // screen's density; past that, drop the depth of field
     onSlow: () => {
-      console.info("Scene: running slowly, turning off depth of field and lowering resolution.");
-      post.bokeh.enabled = false;
-      renderer.setPixelRatio(1);
+      if (renderScale > 0.68) {
+        renderScale = Math.max(0.66, renderScale * 0.85);
+        console.info(`Scene: running slowly, rendering at ${Math.round(renderScale * 100)}% resolution.`);
+      } else if (post.allowDof) {
+        post.allowDof = false;
+        console.info("Scene: running slowly, turning off depth of field.");
+      }
       resize();
     },
   });

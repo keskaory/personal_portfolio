@@ -254,6 +254,11 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
   street.castShadow = true;
   street.shadow.mapSize.set(1024, 1024);
   street.shadow.bias = -0.0003;
+  // its shadows only change when something is touched (a bottle turning, a book tipping), so the
+  // shadow map is redrawn then and for a moment after, not every frame
+  street.shadow.autoUpdate = false;
+  street.shadow.needsUpdate = true;
+  let shadowHot = 0;
   scene.add(street, street.target);
   scene.add(new THREE.HemisphereLight("#5e5040", "#1c160f", 0.75)); // little fill: the lamp, the window and the TV carry the room
   const fill = new THREE.PointLight("#ffc890", 2.0, 4.5, 1.6); // the hall light by the door, falling across the coats
@@ -727,6 +732,7 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
     // seen from the alley. "arrive": the window dark, then the lamp comes on; "leave": dark
     exterior: {
       shot: block.shot,
+      setLit: block.setLit,
       cue(kind) {
         if (kind === "arrive") { home = homeTo = 0; setHome(0); switchAt = reducedMotion ? 0 : 1.0; }
         if (kind === "leave") { home = homeTo = 0; setHome(0); switchAt = -1; }
@@ -738,6 +744,8 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
     lights: { attention },
     update(t, dt, held, hovered) {
       block.update(t);
+      shadowHot = held || hovered ? 1.2 : Math.max(0, shadowHot - dt);
+      if (shadowHot > 0) street.shadow.needsUpdate = true;
       if (switchAt >= 0) { switchAt -= dt; if (switchAt < 0) homeTo = 1; }
       if (home !== homeTo) { home = homeTo > home ? Math.min(homeTo, home + dt / 0.12) : homeTo; setHome(home); } // a switch, not a fade
       artifacts.forEach(a => {

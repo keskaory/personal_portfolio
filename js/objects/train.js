@@ -314,10 +314,12 @@ const handleGeo = (() => {
     const r = 0.052 * (1 + 0.16 * Math.cos(3 * (a - Math.PI / 2))); // a circle pulled toward a triangle
     pts.push(new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r - 0.05, 0));
   }
-  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 60, 0.0065, 8, true);
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 26, 0.0065, 5, true); // enough to read as a smooth loop
 })();
 
-function interior(seed, lineStrip, brightness, rainOpts) {
+// detail: false for cars you only ever see from down the platform: the same room, without the
+// small things (straps, armrests, window seals) that can't be made out from there
+function interior(seed, lineStrip, brightness, rainOpts, detail = true) {
   const g = new THREE.Group();
   const iw = WIDTH - 0.14;
   const b = brightness;
@@ -392,17 +394,17 @@ function interior(seed, lineStrip, brightness, rainOpts) {
     const len = bb - a, cx = (a + bb) / 2, wall = s * (iw / 2);
     const plinth = new THREE.Mesh(new THREE.BoxGeometry(len - 0.04, 0.34, 0.3), M.plinth);
     plinth.position.set(cx, 0.18, wall - s * 0.2);
-    const seat = new THREE.Mesh(new RoundedBoxGeometry(len, 0.11, 0.47, 3, 0.04), M.seat);
+    const seat = new THREE.Mesh(new RoundedBoxGeometry(len, 0.11, 0.47, 2, 0.04), M.seat);
     seat.position.set(cx, 0.42, wall - s * 0.25);
-    const back = new THREE.Mesh(new RoundedBoxGeometry(len, 0.48, 0.09, 3, 0.035), M.seat);
+    const back = new THREE.Mesh(new RoundedBoxGeometry(len, 0.48, 0.09, 2, 0.035), M.seat);
     back.position.set(cx, 0.74, wall - s * 0.085);
     back.rotation.x = s * 0.13; // leaning back toward the wall
     g.add(plinth, seat, back);
     for (let x = a + 0.86; x < bb - 0.4; x += 0.86) arms.push([x, s]);
     endPoles.push([a + 0.03, s], [bb - 0.03, s]);
   }));
-  const armGeo = new THREE.TorusGeometry(0.15, 0.013, 8, 20, Math.PI);
-  const armMesh = new THREE.InstancedMesh(armGeo, M.steel, arms.length);
+  const armGeo = new THREE.TorusGeometry(0.15, 0.013, 6, 14, Math.PI);
+  const armMesh = new THREE.InstancedMesh(armGeo, M.steel, detail ? arms.length : 0);
   arms.forEach(([x, s], i) => { q.setFromEuler(e.set(0, Math.PI / 2, 0)); m4.compose(V3(x, 0.48, s * (iw / 2 - 0.32)), q, one); armMesh.setMatrixAt(i, m4); });
   g.add(armMesh);
 
@@ -420,7 +422,8 @@ function interior(seed, lineStrip, brightness, rainOpts) {
     m4.compose(V3(x, y0 + 0.015, z), q.identity(), one); flanges.setMatrixAt(i * 2, m4);
     m4.compose(V3(x, y1 - 0.015, z), q.identity(), one); flanges.setMatrixAt(i * 2 + 1, m4);
   });
-  g.add(poleMesh, flanges);
+  g.add(poleMesh);
+  if (detail) g.add(flanges);
   const RAIL_Y = 1.95;
   [-0.62, 0.62].forEach(z => {
     const r = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, CAR - 0.6, 16), M.steel);
@@ -430,7 +433,7 @@ function interior(seed, lineStrip, brightness, rainOpts) {
   [-0.62, 0.62].forEach(z => { for (let x = -CAR / 2 + 1; x < CAR / 2 - 0.8; x += 2.4) brackets.push([x, z]); });
   const bracketMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.01, 0.01, CEIL - RAIL_Y, 10), M.steel, brackets.length);
   brackets.forEach(([x, z], i) => { m4.compose(V3(x, (CEIL + RAIL_Y) / 2, z), q.identity(), one); bracketMesh.setMatrixAt(i, m4); });
-  g.add(bracketMesh);
+  if (detail) g.add(bracketMesh);
 
   // ---- hanging straps: a flat band from the rail, a rounded-triangle handle facing the seats,
   // each hanging a touch differently
@@ -446,7 +449,7 @@ function interior(seed, lineStrip, brightness, rainOpts) {
     const tip = V3(0, -0.19, 0).applyQuaternion(q).add(V3(x, RAIL_Y - 0.01, z));
     m4.compose(tip, q, one); handMesh.setMatrixAt(i, m4);
   });
-  g.add(bandMesh, handMesh);
+  if (detail) g.add(bandMesh, handMesh);
 
   // ---- far-side window openings: a lining reveal round each, and a black rubber seal
   const z0 = iw / 2; // the inside face of the far wall
@@ -464,7 +467,7 @@ function interior(seed, lineStrip, brightness, rainOpts) {
       m4.compose(V3(x, winY, z0 - 0.06), q.identity(), one); reveal.setMatrixAt(i, m4);
       m4.compose(V3(x, winY, z0 - 0.025), q.identity(), one); seal.setMatrixAt(i, m4);
     });
-    g.add(reveal, seal);
+    if (detail) g.add(reveal, seal);
   });
 
   // ---- the far glass: rain, the night beyond, the carriage reflected in it
@@ -540,7 +543,7 @@ export function createTrain({ cars = 4, lineStrip = null } = {}) {
     pane.rotation.y = Math.PI;
     car.add(pane);
     const bright = [1, 0.88, 0.96, 0.82][k % 4];
-    const inside = interior(41 + k * 16, lineStrip, bright, { reflect: 1 });
+    const inside = interior(41 + k * 16, lineStrip, bright, { reflect: 1 }, k < 2);
     car.add(inside.group);
     rains.push(inside.rain);
     // the far wall from inside: the same window layout as this side, opened to the rain
@@ -625,6 +628,7 @@ export function createTrain({ cars = 4, lineStrip = null } = {}) {
   // riding: light from outside sweeping down the carriage, as from lamps the train passes
   const passing = new THREE.PointLight("#ffe2b8", 0, 7, 1.6);
   passing.position.set(0, 2.0, WIDTH / 2 + 0.9);
+  passing.visible = false; // only while riding (a light still costs every pixel at intensity 0)
   g.add(passing);
 
   let doors = 0, doorTarget = 0, lamp = 0, motion = 0, travelled = 0;
@@ -635,10 +639,11 @@ export function createTrain({ cars = 4, lineStrip = null } = {}) {
     setDoors(v) { doors = doorTarget = v ? 1 : 0; const e = doors; leaves.forEach(l => (l.position.x = l.userData.home + l.userData.sgn * e * (DOOR_W / 2 - 0.04))); },
     get doorsOpen() { return doors; },
     // 0 standing, 1 under way: the city slides past the far windows and lamps go by
-    set motion(v) { motion = v; },
+    set motion(v) { motion = v; passing.visible = v > 0; },
+    passingLight: passing,
     get motion() { return motion; },
     get lampPhase() { return motion > 0 ? (travelled / 1.4) % 1 : -1; }, // where the passing lamp is along the car, 0..1
-    stop() { motion = 0; travelled = 0; passing.intensity = 0; rains.forEach(r => { r.userData.scroll(0); r.userData.lamp(0, 0); r.userData.smear(0); }); },
+    stop() { motion = 0; travelled = 0; passing.intensity = 0; passing.visible = false; rains.forEach(r => { r.userData.scroll(0); r.userData.lamp(0, 0); r.userData.smear(0); }); },
     update(t, dt, { speed = 0, reduced = false } = {}) {
       // doors slide; their lamps blink while they move
       if (doors !== doorTarget) {

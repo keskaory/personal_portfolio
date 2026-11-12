@@ -282,7 +282,7 @@ async function main() {
     approach: 1.2,  // to a window, before a cut (a little longer for longer walks)
     settle: 1.6,    // from the window into the new room, after a cut
     examine: 1.6,   // to something you've picked up
-    read: 1.8,      // up to the menu as it rises off the table
+    read: 1.3,      // up to the menu as it rises off the table
     putBack: 1.6,   // back to where you were standing
     leave: 1.2,     // toward a page, as the screen fades
     carry: 0.25,    // metres a second kept through a cut when both moves run the same way
@@ -353,8 +353,12 @@ async function main() {
     };
     if (from.scene === to.scene) {
       showStop();
+      const shot = shotFor(active.api, to);
+      // already standing there (the menu's sections share the table's shot): no move to make
+      const here = rig.shot;
+      if (here.position.distanceTo(shot.position) < 0.01 && here.target.distanceTo(shot.target) < 0.01 && Math.abs(here.fov - shot.fov) < 0.1) { arrived(); return; }
       transition = { skip: () => rig.finish() };
-      rig.go(shotFor(active.api, to), PACE.stop, arrived);
+      rig.go(shot, PACE.stop, arrived);
       return;
     }
     if (selected) putBack({ focus: false, move: false });
@@ -549,7 +553,7 @@ async function main() {
       interaction.setHits([a.reader.left, a.reader.right]);
       if (instant) { rig.set(shot); reader.open(a.reader); return; }
       rig.go(shot, PACE.read); // a little slower, so the camera follows the menu up rather than jumping to it
-      setTimeout(() => { if (selected === a && mode === "examine") reader.open(a.reader); }, reduced ? 0 : 1150);
+      setTimeout(() => { if (selected === a && mode === "examine") reader.open(a.reader); }, reduced ? 0 : 750); // as it opens in your hands
       return;
     }
     $("#examine").dataset.side = shot.side || "right";

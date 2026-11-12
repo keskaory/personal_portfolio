@@ -807,7 +807,7 @@ export function buildRestaurant(scene, content, { reducedMotion = false } = {}) 
     home: resting,
     held,
     lift: 0.1, // straight up off the table first, then toward you; the food is never in its path
-    duration: 1.4,
+    duration: 1.0,
     lead: LEAD,
     extra: (k, p) => {
       const up = THREE.MathUtils.smoothstep(p, 0, LEAD);       // tipping up, in place

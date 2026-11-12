@@ -457,8 +457,6 @@ export function buildStation(scene, { site }, { reducedMotion = false } = {}) {
         train.motion = m; rig.sway = m * 0.6;
       },
       rideLength: RIDE.through,
-      // for preloading: the passing lamp's light on or off, so both are ready before they're needed
-      setPassing(on) { train.passingLight.visible = on; },
       // the passing lamp at its brightest across the window: the moment to cut on
       get lampPeak() { return train.lampPhase > 0.42 && train.lampPhase < 0.58; },
       // arriving: stopped at the platform, the doors opening

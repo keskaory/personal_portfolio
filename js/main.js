@@ -74,7 +74,21 @@ async function main() {
 
   // ---- scenes, built on first use
   const built = {};
-  function sceneFor(name) {
+  // compile: true compiles every shader now, blocking (fine before the first frame, or when it's
+  // needed this instant); the background preparation below passes false and compiles in parallel
+  // Shaders are compiled for where they'll draw: the scene renders into the post-processing
+  // buffer (linear, no tone mapping), not straight to the screen, and those are different shader
+  // variants. Compiling against the screen would prepare the wrong ones.
+  const compileTarget = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType });
+  function compileFor(scene, async) {
+    const prev = renderer.getRenderTarget();
+    renderer.setRenderTarget(compileTarget);
+    let done;
+    try { done = async && renderer.compileAsync ? renderer.compileAsync(scene, camera) : renderer.compile(scene, camera); } catch {}
+    renderer.setRenderTarget(prev);
+    return Promise.resolve(done).catch(() => {});
+  }
+  function sceneFor(name, { compile = true } = {}) {
     if (built[name]) return built[name];
     const scene = new THREE.Scene();
     scene.environment = environment;
@@ -82,7 +96,7 @@ async function main() {
     const api = SCENES[name](scene, content, { reducedMotion: reduced });
     if (quality === "low") scene.traverse(o => { if (o.isLight && o.shadow) o.shadow.mapSize.set(1024, 1024); });
     // prepare every material now, so nothing appears late the first time it comes into view
-    try { renderer.compile(scene, camera); } catch {}
+    if (compile) compileFor(scene, false);
     built[name] = { scene, api };
     return built[name];
   }
@@ -682,20 +696,53 @@ async function main() {
   renderer.setSize(innerWidth, innerHeight, false);
   post.setSize(innerWidth, innerHeight);
 
-  // build the other scenes once the first one is on screen, so moving later doesn't stall
-  setTimeout(() => {
-    [...new Set(stops.map(s => s.scene))].forEach((name, k) => setTimeout(() => {
-      const b = sceneFor(name);
-      const stop = stops.find(s => s.scene === name);
-      warm(b, shotFor(b.api, stop));
-      const w = b.api.portal?.(portrait());
-      if (w) warm(b, w.shot);
-      // the place from outside, with its outside lights on; and the train under way, its passing
-      // lamp lit: drawn once now so switching those lights on later is instant
-      if (b.api.exterior) { b.api.exterior.setLit?.(true); warm(b, b.api.exterior.shot(portrait())); b.api.exterior.setLit?.(false); warm(b, shotFor(b.api, stop)); }
-      if (b.api.journey?.setPassing) { b.api.journey.setPassing(true); warm(b, b.api.journey.carriage(portrait())); b.api.journey.setPassing(false); }
-    }, k * 400));
-  }, 1200);
+  // ---- getting every place ready without stalling the one on screen.
+  // 1. Before the first frame, while the opening fade is still up (and before the train starts
+  //    moving): build every place and compile its shaders, in parallel (compileAsync doesn't
+  //    block), for each lighting it can have: inside, and its outside shot with the street lights on.
+  // 2. After the opening has played: put each place's textures on the GPU a few at a time, and
+  //    draw it once from its shots, one small step per idle moment.
+  // Going somewhere before step 2 is done costs at most a short upload on the way.
+  const idle = () => new Promise(res => (window.requestIdleCallback ? requestIdleCallback(() => res(), { timeout: 700 }) : setTimeout(res, 80)));
+  const sceneNames = [...new Set(stops.map(s => s.scene))];
+  async function compileAll() {
+    await Promise.all(sceneNames.map(async name => {
+      const b = sceneFor(name, { compile: false });
+      await compileFor(b.scene, true);
+      if (b.api.exterior && b !== active) {
+        b.api.exterior.setLit?.(true);
+        const lit = compileFor(b.scene, true); // the variants are chosen as the call starts, so the lights can go off at once
+        b.api.exterior.setLit?.(false);
+        await lit;
+      }
+    }));
+  }
+  async function uploadTextures(b) {
+    const found = new Set();
+    b.scene.traverse(o => {
+      (Array.isArray(o.material) ? o.material : o.material ? [o.material] : []).forEach(m => {
+        Object.values(m).forEach(v => { if (v && v.isTexture) found.add(v); });
+        if (m.uniforms) Object.values(m.uniforms).forEach(u => { if (u.value && u.value.isTexture) found.add(u.value); });
+      });
+    });
+    let n = 0;
+    for (const t of found) { try { renderer.initTexture(t); } catch {} if (++n % 3 === 0) await idle(); }
+  }
+  async function settleIn(name) {
+    const b = sceneFor(name);
+    const stop = stops.find(s => s.scene === name);
+    await uploadTextures(b);
+    const shots = [shotFor(b.api, stop), b.api.portal?.(portrait())?.shot].filter(Boolean);
+    for (const shot of shots) { await idle(); warm(b, shot); }
+    if (b.api.exterior && b !== active) {
+      await idle();
+      b.api.exterior.setLit?.(true); warm(b, b.api.exterior.shot(portrait())); b.api.exterior.setLit?.(false);
+    }
+  }
+  // give the compiles up to a few seconds behind the fade; whatever isn't done carries on in the background
+  await Promise.race([compileAll(), new Promise(r => setTimeout(r, 3500))]);
+  warm(active, shotFor(active.api, stops[current])); // the first place's textures and shadows, still behind the fade
+  setTimeout(async () => { for (const name of sceneNames) await settleIn(name); }, built[stops[0].scene] === active && !reduced ? 9000 : 1500);
 
   const forward = new THREE.Vector3();
   const tmp = new THREE.Vector3();

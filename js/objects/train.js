@@ -628,7 +628,6 @@ export function createTrain({ cars = 4, lineStrip = null } = {}) {
   // riding: light from outside sweeping down the carriage, as from lamps the train passes
   const passing = new THREE.PointLight("#ffe2b8", 0, 7, 1.6);
   passing.position.set(0, 2.0, WIDTH / 2 + 0.9);
-  passing.visible = false; // only while riding (a light still costs every pixel at intensity 0)
   g.add(passing);
 
   let doors = 0, doorTarget = 0, lamp = 0, motion = 0, travelled = 0;
@@ -639,11 +638,11 @@ export function createTrain({ cars = 4, lineStrip = null } = {}) {
     setDoors(v) { doors = doorTarget = v ? 1 : 0; const e = doors; leaves.forEach(l => (l.position.x = l.userData.home + l.userData.sgn * e * (DOOR_W / 2 - 0.04))); },
     get doorsOpen() { return doors; },
     // 0 standing, 1 under way: the city slides past the far windows and lamps go by
-    set motion(v) { motion = v; passing.visible = v > 0; },
+    set motion(v) { motion = v; },
     passingLight: passing,
     get motion() { return motion; },
     get lampPhase() { return motion > 0 ? (travelled / 1.4) % 1 : -1; }, // where the passing lamp is along the car, 0..1
-    stop() { motion = 0; travelled = 0; passing.intensity = 0; passing.visible = false; rains.forEach(r => { r.userData.scroll(0); r.userData.lamp(0, 0); r.userData.smear(0); }); },
+    stop() { motion = 0; travelled = 0; passing.intensity = 0; rains.forEach(r => { r.userData.scroll(0); r.userData.lamp(0, 0); r.userData.smear(0); }); },
     update(t, dt, { speed = 0, reduced = false } = {}) {
       // doors slide; their lamps blink while they move
       if (doors !== doorTarget) {

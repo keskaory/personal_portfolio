@@ -17,7 +17,7 @@ function mosaicTex(seed) {
   const rand = seeded(seed);
   ctx.fillStyle = "#6b6a62"; ctx.fillRect(0, 0, 256, 256);
   for (let y = 0; y < 256; y += 8) for (let x = 0; x < 256; x += 8) {
-    const v = 150 + rand() * 40; ctx.fillStyle = `rgb(${v},${v - 4},${v - 14})`; ctx.fillRect(x + 1, y + 1, 6, 6);
+    const v = 168 + rand() * 6; ctx.fillStyle = `rgb(${v},${v - 4},${v - 14})`; ctx.fillRect(x + 1, y + 1, 6, 6); // one tile, near enough one colour
   }
   for (let i = 0; i < 18; i++) {
     const x = rand() * 256, gg = ctx.createLinearGradient(0, rand() * 120, 0, 256);

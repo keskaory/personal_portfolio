@@ -20,6 +20,10 @@
 .title-line { margin: 10px 0 0; font-style: italic; color: var(--paper-dim); font-size: 19px; line-height: 1.45; max-width: 40ch; }
 .title-links { margin: 24px 0 0; display: flex; flex-wrap: wrap; gap: 8px 26px; font-size: 19px; }
 .title-links a:first-child { text-decoration-color: var(--amber); }
+/* how to reach me: quieter than the three main links, but on the first screen */
+.title-contact { margin: 16px 0 0; display: flex; flex-wrap: wrap; gap: 6px 22px; font-family: var(--sans); font-size: 14px; letter-spacing: 0.02em; }
+.title-contact a { color: var(--paper-dim); text-decoration: none; border-bottom: 1px solid rgb(233 226 211 / 0.25); padding-bottom: 1px; }
+.title-contact a:hover, .title-contact a:focus-visible { color: var(--paper); border-bottom-color: var(--paper); }
 body:not([data-title="1"]) .title-card,
 .moving .title-card,
 .examining .title-card { opacity: 0; transform: translateY(10px); pointer-events: none; visibility: hidden; transition: opacity 0.6s ease, transform 0.6s ease, visibility 0s 0.6s; }
@@ -36,18 +40,32 @@ body[data-title="1"]:not(.moving):not(.examining) .site-header :is(.site-name, .
 }
 .chapters ol { list-style: none; margin: 0; padding: 0; }
 .chapters > ol > li { margin: 0 0 16px; }
-.chapters a { text-decoration: none; color: rgb(233 226 211 / 0.42); transition: color 0.3s; }
+.chapters a { text-decoration: none; color: rgb(233 226 211 / 0.6); transition: color 0.3s; }
 .chapters a:hover { color: var(--paper); }
 .chapters .chapter.current > a { color: var(--paper); }
 .chapters li ol { margin-top: 4px; font-size: 14px; font-family: var(--sans); }
 /* quieter: only the chapter you're in shows its stops, the rest open on hover or focus */
 .chapters > ol > li:not(.current) ol { display: none; }
 .chapters:is(:hover, :focus-within) > ol > li ol { display: block; }
-.chapters a { text-shadow: 0 1px 2px rgb(0 0 0 / 0.6); }
+.chapters a { text-shadow: 0 0 1px rgb(0 0 0 / 0.9), 0 1px 3px rgb(0 0 0 / 0.85), 0 0 12px rgb(0 0 0 / 0.5); } /* it sits over the picture: keep it legible on a lit train or a bright wall */
 .chapters li ol li { margin: 3px 0; }
 .chapters li ol a[aria-current] { color: var(--amber); }
 .chapters > ol > li > a[aria-current] { color: var(--paper); }
-.examining .chapters { opacity: 0; pointer-events: none; }
+.examining .chapters, .reading .chapters { opacity: 0; pointer-events: none; } /* never over the menu's pages or a panel's text */
+
+/* Between places the frame goes to a wider ratio, the way a film marks a sequence: two bars
+   slide in for the journey and out once you've arrived. The header stays (its links still work,
+   and skip the journey); the chapter list and the next link wait. */
+.letterbox::before, .letterbox::after {
+  content: ""; position: fixed; left: 0; right: 0; height: 0; z-index: 9; pointer-events: none;
+  background: #000; transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.letterbox::before { top: 0; }
+.letterbox::after { bottom: 0; }
+.cutting .letterbox::before, .cutting .letterbox::after { height: 10.5vh; }
+.cutting :is(.chapters, .next, .caption) { opacity: 0; pointer-events: none; }
+@media (max-aspect-ratio: 4/5) { .cutting .letterbox::before, .cutting .letterbox::after { height: 6vh; } }
+@media (prefers-reduced-motion: reduce) { .letterbox::before, .letterbox::after { display: none; } }
 
 /* the way on */
 .next {
@@ -122,7 +140,7 @@ body[data-title="1"]:not(.moving):not(.examining) .site-header :is(.site-name, .
 .scene-page::after {
   content: ""; position: fixed; inset: 0; z-index: 14; pointer-events: none;
   opacity: 0; transition: opacity 0.7s ease;
-  background: radial-gradient(ellipse 34% 66% at var(--scrim-x, 78%) 50%, rgb(4 6 5 / 0.84), rgb(4 6 5 / 0.55) 55%, rgb(4 6 5 / 0));
+  background: radial-gradient(ellipse 38% 70% at var(--scrim-x, 78%) 50%, rgb(4 6 5 / 0.9), rgb(4 6 5 / 0.66) 55%, rgb(4 6 5 / 0)); /* dark enough that the text reads over a lit shelf */
 }
 .scene-page:has(.examine.on)::after { opacity: 1; }
 .scene-page:has(.examine[data-side="left"])::after { --scrim-x: 22%; }
@@ -193,7 +211,7 @@ body[data-title="1"]:not(.moving):not(.examining) .site-header :is(.site-name, .
 .reader.on { opacity: 1; transform: translate(-50%, 0); }
 .reader-where { margin: 0; font-family: var(--sans); font-size: 13px; color: var(--paper-dim); }
 .reader-info { min-width: 0; }
-.reader-title { margin: 2px 0 0; font-weight: 400; font-size: 22px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reader-title { margin: 2px 0 0; font-weight: 400; font-size: 22px; line-height: 1.25; } /* the whole title: a project name cut off with dots helps nobody */
 .reader-summary { display: none; margin: 4px 0 0; font-size: 16px; line-height: 1.4; color: var(--paper-dim); }
 .reader-sample { margin: 2px 0 0; font-family: var(--sans); font-size: 12px; color: #c47a68; }
 .reader-actions { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 17px; }

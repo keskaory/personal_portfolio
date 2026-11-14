@@ -111,7 +111,7 @@ function facadeTex(seed) {
   }
   ctx.fillStyle = "#b8b2a2"; ctx.fillRect(0, 512 - TILE, 512, TILE);
   for (let y = 512 - TILE; y < 512; y += 9) for (let x = (y / 9) % 2 * 4; x < 512; x += 9) {
-    const v = 150 + rand() * 50; ctx.fillStyle = `rgb(${v},${v - 6},${v - 18})`; ctx.fillRect(x + 1, y + 1, 7, 7);
+    const v = 172 + rand() * 6; ctx.fillStyle = `rgb(${v},${v - 6},${v - 18})`; ctx.fillRect(x + 1, y + 1, 7, 7); // one tile, near enough one colour
   }
   ctx.fillStyle = "rgba(40,36,30,0.25)"; ctx.fillRect(0, 512 - TILE - 4, 512, 6); // a dark line where tile meets paint
   for (let i = 0; i < 60; i++) { ctx.fillStyle = `rgba(40,30,20,${rand() * 0.15})`; ctx.fillRect(rand() * 512, 512 - TILE + rand() * TILE, 6 + rand() * 30, 2 + rand() * 8); }

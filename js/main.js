@@ -38,8 +38,13 @@ function fillTitleCard(site) {
   if (person.line) $("#title-line").textContent = person.line;
   else $("#title-line").remove();
   $("#header-school").textContent = person.school;
+  const contact = $("#title-contact");
+  const email = linkOr(links.email, ""), linkedin = linkOr(links.linkedin, "");
+  if (email) contact.insertAdjacentHTML("beforeend", `<a href="mailto:${email}">${email}</a>`);
+  if (linkedin) contact.insertAdjacentHTML("beforeend", `<a href="${linkedin}" target="_blank" rel="noopener">LinkedIn</a>`);
+  if (!email && !linkedin) contact.remove();
   const resume = linkOr(links.resume, "contents.html#resume");
-  document.querySelectorAll("[data-resume]").forEach(a => (a.href = resume));
+  document.querySelectorAll("[data-resume]").forEach(a => { a.href = resume; if (/\.pdf$/i.test(resume)) { a.target = "_blank"; a.rel = "noopener"; } });
 }
 
 function showFallback(message) {
@@ -347,7 +352,7 @@ async function main() {
       focusOverride = null;
       mode = "rest";
       interaction.enabled = true;
-      document.body.classList.remove("moving");
+      document.body.classList.remove("moving", "cutting");
       then?.();
       if (queued) { const q = queued; queued = null; goTo(q.i, { then: q.then }); }
     };
@@ -460,7 +465,9 @@ async function main() {
     const landed = current;
     interaction.enabled = false;
     caption.hide();
+    if (!reduced) document.body.classList.add("cutting"); // the bars come in for the journey
     const settle = () => {
+      document.body.classList.remove("cutting");
       arrived();
       // the subtitle once the camera has come to rest (not over the menu, which is read, not watched)
       if (!to.read && to.subtitle) setTimeout(() => {

@@ -9,7 +9,7 @@ if (ready) {
   const i = experience.findIndex(e => e.id === id);
   const page = document.getElementById("page");
   const back = document.getElementById("back");
-  back.textContent = "Back to the case files";
+  back.textContent = "Back to experience";
 
   if (i === -1) {
     back.href = "index.html#experience";

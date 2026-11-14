@@ -18,7 +18,7 @@ export async function startPage() {
     return null;
   }
   const resume = linkOr(content.site.links.resume, "contents.html#resume");
-  document.querySelectorAll("[data-resume]").forEach(a => (a.href = resume));
+  document.querySelectorAll("[data-resume]").forEach(a => { a.href = resume; if (/\.pdf$/i.test(resume)) { a.target = "_blank"; a.rel = "noopener"; } });
   document.querySelector(".loading")?.remove();
   return {
     content,
@@ -26,7 +26,7 @@ export async function startPage() {
   };
 }
 
-export const sampleNote = item => (item.sample ? `<p class="sample-note">Sample content. Replace it in the content folder.</p>` : "");
+export const sampleNote = item => (item.sample ? `<p class="sample-note">Sample content</p>` : "");
 
 // a real image if there is one, otherwise the drawn placeholder
 export function figure(preview, id, sample) {

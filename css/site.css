@@ -145,3 +145,9 @@ body:not(.scene-page) .site-header { position: absolute; }
 .contents h2 { scroll-margin-top: 40px; }
 .index-h3 { font-weight: 400; font-size: 22px; margin: 28px 0 4px; }
 .index-list.compact li { margin: 0 0 4px; font-size: 18px; }
+
+/* the Index's first line of business: the resume, and how to get in touch */
+.index-actions { display: flex; flex-wrap: wrap; gap: 10px 12px; margin: 26px 0 6px; font-family: var(--sans); font-size: 15px; }
+.index-actions a { padding: 9px 16px; border: 1px solid rgb(233 226 211 / 0.3); border-radius: 2px; text-decoration: none; color: var(--paper); }
+.index-actions a:hover, .index-actions a:focus-visible { border-color: var(--paper); }
+.index-actions a.primary { background: var(--paper); border-color: var(--paper); color: #0b0c0b; }

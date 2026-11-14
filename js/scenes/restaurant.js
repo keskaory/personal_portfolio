@@ -90,16 +90,17 @@ function wallTiles() {
   const rand = seeded(401);
   ctx.fillStyle = "#6e675a";
   ctx.fillRect(0, 0, 512, 512);
+  // 10 cm square glazed tiles, all one cream, the same highlight along each top edge: a wall
+  // tiled from one box, not a patchwork. (The walls they go on are 3.2 m by 1.25 m.)
   const n = 8, s = 512 / n;
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
-    const v = 208 + rand() * 16;
-    ctx.fillStyle = `rgb(${v},${v - 4},${v - 20})`;
+    ctx.fillStyle = "rgb(214,210,193)";
     ctx.fillRect(i * s + 2, j * s + 2, s - 4, s - 4);
     ctx.fillStyle = "rgba(255,255,255,0.18)";
     ctx.fillRect(i * s + 4, j * s + 4, s - 12, 3);
   }
-  for (let i = 0; i < 6000; i++) { ctx.fillStyle = `rgba(60,50,30,${rand() * 0.06})`; ctx.fillRect(rand() * 512, rand() * 512, 2, 2); }
-  return tex(c, [5, 3]);
+  for (let i = 0; i < 6000; i++) { ctx.fillStyle = `rgba(60,50,30,${rand() * 0.05})`; ctx.fillRect(rand() * 512, rand() * 512, 2, 2); }
+  return tex(c, [3.2 / 0.8, 1.25 / 0.8]);
 }
 // formica: pale mint with a fine pattern, worn where plates go
 function formica() {

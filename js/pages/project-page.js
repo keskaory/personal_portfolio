@@ -9,7 +9,7 @@ if (ready) {
   const i = projects.findIndex(p => p.id === id);
   const page = document.getElementById("page");
   const back = document.getElementById("back");
-  back.textContent = "Back to the projects";
+  back.textContent = "Back to projects";
 
   if (i === -1) {
     back.href = "index.html#projects";

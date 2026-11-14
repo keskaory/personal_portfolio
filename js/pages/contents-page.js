@@ -14,8 +14,10 @@ if (ready) {
     linkOr(links.github, "") && `<a href="${escapeHTML(links.github)}" target="_blank" rel="noopener">GitHub</a>`,
   ].filter(Boolean);
 
+  const resume = linkOr(links.resume, "");
   document.getElementById("page").insertAdjacentHTML("beforeend", `
     <p class="meta">${escapeHTML(person.school)}. ${escapeHTML(person.graduation)}.</p>
+    ${resume || contact.length ? `<p class="index-actions" id="resume">${[resume && `<a class="primary" href="${escapeHTML(resume)}">Resume (PDF)</a>`, ...contact].filter(Boolean).join("")}</p>` : ""}
 
     <h2 id="about">Who I am</h2>
     ${person.line ? `<p>${escapeHTML(person.line)}</p>` : ""}
@@ -33,15 +35,9 @@ if (ready) {
       <span class="index-sub">${escapeHTML(e.role)}, ${escapeHTML(e.dates)}</span>
     </li>`).join("")}</ul>
 
-    <h2 id="resume">Resume</h2>
-    <p>${linkOr(links.resume, "") ? `<a href="${escapeHTML(links.resume)}">Download the resume (PDF)</a>` : "The resume PDF isn't linked yet. Add it in content/site.json under links.resume."}</p>
-
-    <h2 id="contact">Contact</h2>
-    <p>${contact.length ? contact.join(" · ") : "Contact details aren't added yet. Add them in content/site.json under links."}</p>
-
     <h2 id="beyond">Beyond the work</h2>
     <ul class="index-list">${fragrances.map(f => `<li><a href="${urls.fragrance(f.id)}">${escapeHTML(f.name)}</a>${sample(f.sample)} <span class="index-sub">${escapeHTML(String(f.size))} ml</span></li>`).join("")}</ul>
-    ${Object.entries(collections || {}).filter(([k]) => !k.startsWith("_")).map(([, c]) => `
+    ${Object.entries(collections || {}).filter(([k, c]) => !k.startsWith("_") && c && c.title && !c.sample).map(([, c]) => `
       <h3 class="index-h3">${escapeHTML(c.title)}${sample(c.sample)}</h3>
       ${c.intro ? `<p class="index-sub">${escapeHTML(c.intro)}</p>` : ""}
       ${c.items && c.items.length ? `<ul class="index-list compact">${c.items.map(i => `<li>${escapeHTML(typeof i === "string" ? i : i.title)}</li>`).join("")}</ul>` : ""}`).join("")}

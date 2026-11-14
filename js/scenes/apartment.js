@@ -111,7 +111,8 @@ function coverTexture(item, colour, seed) {
     ctx.fillStyle = "#f4f0e6"; ctx.fillRect(20, 20, 216, 40);
     ctx.fillStyle = "#1c1a18";
     ctx.font = '600 20px "Helvetica Neue", Arial, sans-serif';
-    const title = (item && item.title) || "";
+    const raw = (item && item.title) || "";
+    const title = /^sample\b/i.test(raw) ? "" : raw; // a placeholder title isn't printed on the cover
     ctx.fillText(title.length > 20 ? title.slice(0, 19) + "…" : title, 28, 47);
     ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.fillRect(196, 318, 40, 30);
     ctx.fillStyle = colour; ctx.fillRect(204, 324, 24, 18);
@@ -280,8 +281,8 @@ export function buildApartment(scene, content, { reducedMotion = false } = {}) {
     const c = C[key] || {};
     return {
       title: c.title || key,
-      body: c.intro,
-      list: c.items && c.items.length ? { heading: "In the collection", items: c.items.map(title) } : null,
+      body: c.sample ? "" : c.intro, // placeholder text isn't shown to visitors
+      list: !c.sample && c.items && c.items.length ? { heading: "In the collection", items: c.items.map(title) } : null,
       actions: [{ label: "See everything", href: "contents.html#beyond", page: true }, ...(extra.actions || [])],
       sample: c.sample,
     };
